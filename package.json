@@ -1,7 +1,7 @@
 {
-  "name": "arbeditor",
-  "displayName": "arbeditor",
-  "description": "arb editor",
+  "name": "arb-editor",
+  "displayName": "ARB Editor",
+  "description": "Editor for Application Resource Bundle files, used for localization.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.72.2"
