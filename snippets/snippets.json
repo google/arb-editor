@@ -1,0 +1,66 @@
+{
+    "stringmessage": {
+        "prefix": "arbString",
+        "body": [
+            "\"${1:id}\": \"$2\",",
+            "\"@${1:id}\": {",
+            "  \"description\": \"${1/([a-z]+)(?=[A-Z])|([A-Z])(?=[A-Z])|([A-Z][a-z]+)(?=$)|([A-Z][a-z]+)|([a-z]+)(?=$)/${1:/capitalize}${1:+ }$2${2:+ }${3:/downcase}${4:/downcase}${4:+ }${5:/downcase}/g}\",",
+            "  }",
+            "},"
+        ],
+        "description": "stringmessage"
+    },
+    "stringWithArgMessage": {
+        "prefix": "arbStringWithArg",
+        "body": [
+            "\"${1:id}\": \"$2\",",
+            "\"@$1\": {",
+            "  \"description\": \"${1/([a-z]+)(?=[A-Z])|([A-Z])(?=[A-Z])|([A-Z][a-z]+)(?=$)|([A-Z][a-z]+)|([a-z]+)(?=$)/${1:/capitalize}${1:+ }$2${2:+ }${3:/downcase}${4:/downcase}${4:+ }${5:/downcase}/g}\",",
+            "  \"placeholders\": {",
+            "${2/([^{]+){(.*?)}(.+|)/    \"${2:-}\": {\n      \"type\": \"\",\n      \"example\": \"\"\n    }/g}",
+            "  }",
+            "},"
+        ],
+        "description": "stringWithArgMessage"
+    },
+    "pluralmessage": {
+        "prefix": "arbPlural",
+        "body": [
+            "\"${1:id}\": \"{${2:count}, plural, other{$3} zero{$4} one{$5} two{$6} few{$7} many{$8}}\",",
+            "\"@$1\": {",
+            "    \"description\": \"${1/([a-z]+)(?=[A-Z])|([A-Z])(?=[A-Z])|([A-Z][a-z]+)(?=$)|([A-Z][a-z]+)|([a-z]+)(?=$)/${1:/capitalize}${1:+ }$2${2:+ }${3:/downcase}${4:/downcase}${4:+ }${5:/downcase}/g}\",",
+            "    \"placeholders\": {",
+            "        \"$2\": {",
+            "          \"type\": \"int\",",
+            "          \"example\": \"1\" ",
+            "        }",
+            "    }",
+            "},"
+        ],
+        "description": "pluralmessage"
+    },
+    "selectmessage": {
+        "prefix": "arbSelect",
+        "body": [
+            "\"${1:id}\": \"{${2:arg}, select, other{${3:message}} ${4:case}{${5:message}}}\",",
+            "\"@$1\": {",
+            "    \"description\": \"${1/([a-z]+)(?=[A-Z])|([A-Z])(?=[A-Z])|([A-Z][a-z]+)(?=$)|([A-Z][a-z]+)|([a-z]+)(?=$)/${1:/capitalize}${1:+ }$2${2:+ }${3:/downcase}${4:/downcase}${4:+ }${5:/downcase}/g}\",",
+            "    \"placeholders\": {",
+            "        \"$2\": {",
+            "          \"type\":\"String\",",
+            "          \"example\":\"1\" ",
+            "        }",
+            "    }",
+            "},"
+        ],
+        "description": "selectmessage"
+    },
+    "arb": {
+        "prefix": "arb",
+        "body": [
+            "\"@@locale\": \"${1:en_US}\",",
+            "\"@@context\": \"${1:pagename}\","
+        ],
+        "description": "arb"
+    }
+}
