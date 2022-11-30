@@ -6,6 +6,16 @@
   "engines": {
     "vscode": "^1.72.2"
   },
+  "homepage": "https://github.com/mosum/arb-editor",
+  "bugs": {
+    "url": "https://github.com/mosum/arb-editor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mosum/arb-editor"
+  },
+  "license": "Apache-2.0",
+  "author": "Moritz Sümmermann <mosum@google.com>",
   "categories": [
     "Other"
   ],
@@ -27,6 +37,14 @@
       }
     ]
   },
+  "keywords": [
+    "Flutter",
+    "arb",
+    "localization",
+    "l10n",
+    "i18n",
+    "internationalization"
+  ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
