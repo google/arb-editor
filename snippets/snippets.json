@@ -59,7 +59,7 @@
         "prefix": "arb",
         "body": [
             "\"@@locale\": \"${1:en_US}\",",
-            "\"@@context\": \"${1:pagename}\","
+            "\"@@context\": \"${2:pagename}\","
         ],
         "description": "arb"
     }
