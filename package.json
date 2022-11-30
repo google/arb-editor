@@ -19,6 +19,12 @@
         "language": "json",
         "path": "./snippets/snippets.json"
       }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "*.arb",
+        "url": "./schemas/arb.json"
+      }
     ]
   },
   "scripts": {

@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/schema",
+    "$id": "arb.json",
+    "title": "Product",
+    "description": "A product in the catalog",
+    "type": "object",
+    "patternProperties": {
+        "^@@x-.+$": {
+            "type": "string",
+            "description": "A custom global attribute."
+        },
+        "^@(?!@).+$": {
+            "type": "string",
+            "description": "Metadata for a message"
+        },
+        "^(?!@@).+$": {
+            "type": "string",
+            "description": "The ID of a message"
+        }
+    },
+    "properties": {
+        "@@locale": {
+            "description": "The locale for which messages/resources are stored in this file.",
+            "type": "string"
+        },
+        "@@context": {
+            "description": "It describes (in text) the context in which all these resources apply.",
+            "type": "string"
+        },
+        "@@last_modified": {
+            "description": "The last modified time of this ARB file/data. It is presented in ISO8601 complete form with hour and minutes. Example like: 2011-09-08T09:42-07:00.",
+            "type": "string"
+        },
+        "@@author": {
+            "description": "The author of these messages. In the case of localized ARB files it can contain the names/details of the translator.",
+            "type": "string"
+        }
+    },
+    "required": [
+        "@@locale"
+    ],
+    "additionalProperties": false
+}
