@@ -14,35 +14,9 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "arbeditor.helloWorld",
-        "title": "Hello World"
-      }
-    ],
-    "languages": [
-      {
-        "id": "arb",
-        "aliases": [
-          "Application Resource Bundle",
-          "arb"
-        ],
-        "extensions": [
-          ".arb"
-        ],
-        "configuration": "./language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "arb",
-        "scopeName": "source.json",
-        "path": "./syntaxes/json.tmLanguage.json"
-      }
-    ],
     "snippets": [
       {
-        "language": "arb",
+        "language": "json",
         "path": "./snippets/snippets.json"
       }
     ]
