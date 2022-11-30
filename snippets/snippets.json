@@ -1,6 +1,6 @@
 {
     "stringmessage": {
-        "prefix": "arbString",
+        "prefix": "string",
         "body": [
             "\"${1:id}\": \"$2\",",
             "\"@${1:id}\": {",
@@ -8,10 +8,10 @@
             "  }",
             "},"
         ],
-        "description": "stringmessage"
+        "description": "A simple ARB string message"
     },
     "stringWithArgMessage": {
-        "prefix": "arbStringWithArg",
+        "prefix": "stringWithArgs",
         "body": [
             "\"${1:id}\": \"$2\",",
             "\"@$1\": {",
@@ -21,10 +21,10 @@
             "  }",
             "},"
         ],
-        "description": "stringWithArgMessage"
+        "description": "An ARB string message with arguments"
     },
     "pluralmessage": {
-        "prefix": "arbPlural",
+        "prefix": "plural",
         "body": [
             "\"${1:id}\": \"{${2:count}, plural, other{$3} zero{$4} one{$5} two{$6} few{$7} many{$8}}\",",
             "\"@$1\": {",
@@ -37,10 +37,10 @@
             "    }",
             "},"
         ],
-        "description": "pluralmessage"
+        "description": "An ARB plural message"
     },
     "selectmessage": {
-        "prefix": "arbSelect",
+        "prefix": "select",
         "body": [
             "\"${1:id}\": \"{${2:arg}, select, other{${3:message}} ${4:case}{${5:message}}}\",",
             "\"@$1\": {",
@@ -53,14 +53,16 @@
             "    }",
             "},"
         ],
-        "description": "selectmessage"
+        "description": "An ARB select message"
     },
     "arb": {
         "prefix": "arb",
         "body": [
-            "\"@@locale\": \"${1:en_US}\",",
-            "\"@@context\": \"${2:pagename}\","
+            "{",
+            "  \"@@locale\": \"${1:en_US}\",",
+            "  \"@@context\": \"${2:pagename}\",",
+            "}"
         ],
-        "description": "arb"
+        "description": "An ARB file starter"
     }
 }
