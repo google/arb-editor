@@ -100,16 +100,16 @@ function updateFooJsonDecorations(editor: vscode.TextEditor) {
 	let colorMap = new Map<string, vscode.Range[]>();
 	visit(editor.document.getText(), {
 		onLiteralValue: (value: string, offset: number) => {
-			let starts: number[] = [];
+			let openBrackets: number[] = [];
 			for (let index = 0; index < value.length; index++) {
-				const element = value.charAt(index);
-				if (element === '{') {
-					starts.push(index);
-				} else if (element === '}') {
-					let start = starts.pop()!;
+				const char = value.charAt(index);
+				if (char === '{') {
+					openBrackets.push(index);
+				} else if (char === '}') {
+					let start = openBrackets.pop() ?? 0;
 					let end = index;
 					const part = value.substring(start + 1, end);
-					const level = starts.length;
+					const level = openBrackets.length;
 					const decoration = parse(part, level);
 					if (decoration !== undefined) {
 						const rangeStart = offset + start + 1;
