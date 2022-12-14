@@ -22,7 +22,6 @@ module.exports = {
 
 let pendingFooJsonDecoration: string | number | NodeJS.Timeout | undefined;
 
-import { debug } from 'console';
 import * as vscode from 'vscode';
 import { ConfigurationTarget, workspace } from 'vscode';
 
