@@ -109,8 +109,7 @@ function updateFooJsonDecorations(editor: vscode.TextEditor) {
 					let start = starts.pop()!;
 					let end = index;
 					const part = value.substring(start + 1, end);
-					debug(part);
-					const level = starts.length > 1 ? 1 : 0;
+					const level = starts.length;
 					const decoration = parse(part, level);
 					if (decoration !== undefined) {
 						const rangeStart = offset + start + 1;
