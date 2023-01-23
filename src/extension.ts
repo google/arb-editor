@@ -28,10 +28,6 @@ import { ConfigurationTarget, workspace } from 'vscode';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-	const configuration = workspace.getConfiguration('files');
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	await configuration.update('associations', { "*.arb": "json" }, ConfigurationTarget.Global);
-
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {

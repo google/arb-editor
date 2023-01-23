@@ -35,6 +35,14 @@
         "fileMatch": "*.arb",
         "url": "./schemas/arb.json"
       }
+    ],
+    "languages": [
+      {
+        "id": "json",
+        "extensions": [
+          "arb"
+        ]
+      }
     ]
   },
   "keywords": [
