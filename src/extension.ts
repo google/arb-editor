@@ -111,7 +111,7 @@ function updateFooJsonDecorations(editor: vscode.TextEditor) {
 				}
 			}
 		}
-	});
+	}, { disallowComments: true });
 	editor.setDecorations(pluralDecoration, colorMap.get('plural') ?? []);
 	editor.setDecorations(selectDecoration, colorMap.get('select') ?? []);
 	editor.setDecorations(argDecoration, colorMap.get('arg') ?? []);
