@@ -20,7 +20,7 @@ module.exports = {
 	activate
 };
 
-let pendingFooJsonDecoration: string | number | NodeJS.Timeout | undefined;
+let pendingFooJsonDecoration: NodeJS.Timeout | undefined;
 
 import * as vscode from 'vscode';
 import { ConfigurationTarget, workspace } from 'vscode';
@@ -57,9 +57,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	if (activeTextEditor !== undefined) {
 		updateFooJsonDecorations(activeTextEditor);
 	}
-
-	// decorate when then cursor moves
-	context.subscriptions.push(new EditorEventHandler());
 }
 
 // This method is called when your extension is deactivated
@@ -131,23 +128,5 @@ function parse(value: string, level: number): string | undefined {
 		return 'plural';
 	} else {
 		return 'arg';
-	}
-}
-
-class EditorEventHandler {
-	private _disposable: vscode.Disposable;
-
-	constructor() {
-		let subscriptions: vscode.Disposable[] = [];
-		vscode.window.onDidChangeTextEditorSelection((e: vscode.TextEditorSelectionChangeEvent) => {
-			if (e.textEditor === vscode.window.activeTextEditor) {
-				updateFooJsonDecorations(e.textEditor);
-			}
-		}, this, subscriptions);
-		this._disposable = vscode.Disposable.from(...subscriptions);
-	}
-
-	dispose() {
-		this._disposable.dispose();
 	}
 }

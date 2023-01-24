@@ -24,11 +24,11 @@
                         "image",
                         "css"
                     ],
-                    "description": "Describes the type of resource. Possible values are \"text\", \"image\", or \"css\". Program should not rely on this attribute in run time. It is mainly for the localization tools."
+                    "description": "The type of resource. Possible values are \"text\", \"image\", or \"css\". Program should not rely on this attribute in run time. It is mainly for the localization tools."
                 },
                 "context": {
                     "type": "string",
-                    "description": "It describes (in text) the context in which this resource applies. Context is organized in hierarchy, and level separated by \":\". Tools can use this information to restore the tree structure from ARB's flat layout. When this piece of information is missing, it defaults to global."
+                    "description": "The context in which this resource applies. Context is organized in hierarchy, and level separated by \":\". Tools can use this information to restore the tree structure from ARB's flat layout. When this piece of information is missing, it defaults to global."
                 },
                 "placeholders": {
                     "type": "object",
@@ -290,7 +290,7 @@
                     "description": "A short paragraph describing the resource and how it is being used by the app, and message that need to be passed to localization process and translators."
                 }
             },
-            "description": "Metadata for a message",
+            "description": "Metadata for a message.",
             "additionalProperties": false
         },
         "^(?!@@).+$": {
