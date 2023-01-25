@@ -14,16 +14,17 @@
 'use strict';
 
 import path = require('path');
-import { visit } from 'jsonc-parser';
+import { JSONPath, visit } from 'jsonc-parser';
 
 module.exports = {
 	activate
 };
 
-let pendingFooJsonDecoration: NodeJS.Timeout | undefined;
+let pendingIcuMessageDecoration: NodeJS.Timeout | undefined;
 
 import * as vscode from 'vscode';
 import { ConfigurationTarget, workspace } from 'vscode';
+import XRegExp = require('xregexp');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -35,19 +36,19 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {
-			return updateFooJsonDecorations(editor);
+			return updateIcuMessageDecorations(editor);
 		}
 	}, null, context.subscriptions));
 
 	// decorate when the document changes
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
 		if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
-			if (pendingFooJsonDecoration) {
-				clearTimeout(pendingFooJsonDecoration);
+			if (pendingIcuMessageDecoration) {
+				clearTimeout(pendingIcuMessageDecoration);
 			}
 			const activeTextEditor = vscode.window.activeTextEditor;
 			if (activeTextEditor !== undefined) {
-				pendingFooJsonDecoration = setTimeout(() => updateFooJsonDecorations(activeTextEditor), 1000);
+				pendingIcuMessageDecoration = setTimeout(() => updateIcuMessageDecorations(activeTextEditor), 500);
 			}
 		}
 	}, null, context.subscriptions));
@@ -55,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate the active editor now
 	const activeTextEditor = vscode.window.activeTextEditor;
 	if (activeTextEditor !== undefined) {
-		updateFooJsonDecorations(activeTextEditor);
+		updateIcuMessageDecorations(activeTextEditor);
 	}
 }
 
@@ -87,46 +88,95 @@ const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	}
 });
 
-const selectRegex = /^(\w+\s*,\s*select\s*,(?:\s*\w+\{.*\})*)$/g;
-const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/g;
-function updateFooJsonDecorations(editor: vscode.TextEditor) {
+const selectRegex = /^(\w+\s*,\s*select\s*,(?:\s*\w+\{.*\})*)$/;
+const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/;
+const argNameRegex = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
+function updateIcuMessageDecorations(editor: vscode.TextEditor) {
+	let colorMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>();
 	if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
 		return;
 	}
-	let colorMap = new Map<string, vscode.Range[]>();
+	let currentLevel = 0;
+	let isInPlaceholders = -1;
+	let isInMetadata = -1;
 	visit(editor.document.getText(), {
 		onLiteralValue: (value: string, offset: number) => {
-			let openBrackets: number[] = [];
-			for (let index = 0; index < value.length; index++) {
-				const char = value.charAt(index);
-				if (char === '{') {
-					openBrackets.push(index);
-				} else if (char === '}') {
-					let start = openBrackets.pop() ?? 0;
-					let end = index;
-					const part = value.substring(start + 1, end);
-					const level = openBrackets.length;
-					const decoration = parse(part, level);
-					if (decoration !== undefined) {
-						const rangeStart = offset + start + 1;
-						const rangeEnd = offset + end + 2;
-						colorMap.set(decoration, [...(colorMap.get(decoration) ?? []), new vscode.Range(editor.document.positionAt(rangeStart), editor.document.positionAt(rangeEnd))]);
-					}
-				}
+			colorPart(value, offset, colorMap, editor, true);
+		},
+		onObjectBegin: (offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
+			currentLevel++;
+		},
+		onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
+			if (isInPlaceholders === currentLevel - 1) {
+				const rangeStart = offset + 1;
+				const rangeEnd = offset + property.length + 1;
+				const range = new vscode.Range(editor.document.positionAt(rangeStart), editor.document.positionAt(rangeEnd));
+				colorMap.set(argDecoration, [...(colorMap.get(argDecoration) ?? []), range]);
 			}
-		}
+			if (property.startsWith('@')) {
+				isInMetadata = currentLevel;
+			}
+			if (isInMetadata === currentLevel - 1 && property === 'placeholders') {
+				isInPlaceholders = currentLevel;
+			}
+		},
+		onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
+			currentLevel--;
+			if (currentLevel < isInPlaceholders) {
+				isInPlaceholders = -1;
+			}
+			if (currentLevel < isInMetadata) {
+				isInMetadata = -1;
+			}
+		},
+	}, { disallowComments: true });
+	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
+		editor.setDecorations(key, value ?? []);
 	});
-	editor.setDecorations(pluralDecoration, colorMap.get('plural') ?? []);
-	editor.setDecorations(selectDecoration, colorMap.get('select') ?? []);
-	editor.setDecorations(argDecoration, colorMap.get('arg') ?? []);
 }
 
-function parse(value: string, level: number): string | undefined {
-	if (selectRegex.exec(value) !== null) {
-		return 'select';
-	} else if (pluralRegex.exec(value) !== null) {
-		return 'plural';
-	} else {
-		return 'arg';
+function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean) {
+	const vals = XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
+		escapeChar: '\''
+	});
+	for (const part of vals) {
+		let start = value.indexOf('{' + part + '}');
+		if (selectRegex.exec(part) !== null) {
+			start = colorComplex(selectDecoration, part, start);
+		} else if (pluralRegex.exec(part) !== null) {
+			start = colorComplex(pluralDecoration, part, start);
+		} else {
+			if (isOuter) {
+				if (argNameRegex.exec(part) !== null) {
+					colorFromTo(offset, start, start + part.length, argDecoration);
+				}
+			} else {
+				colorPart(part, offset + start + 1, colorMap, editor, true);
+			}
+		}
+	}
+
+	function colorComplex(decoration: vscode.TextEditorDecorationType, part: string, start: number) {
+		const firstComma = part.indexOf(',');
+		colorFromTo(offset, start, start + firstComma, argDecoration);
+		const innerVals = XRegExp.matchRecursive(part, '\\{', '\\}', 'g');
+		const secondComma = part.indexOf(',', firstComma + 1);
+		start = start + secondComma + 1;
+		for (const innerpart of innerVals) {
+			const innerString = '{' + innerpart + '}';
+			const indexOfInnerInOuter = value.indexOf(innerString, start);
+			colorFromTo(offset, start, indexOfInnerInOuter - 1, decoration);
+			start = indexOfInnerInOuter + innerString.length;
+
+			colorPart(innerString, offset + indexOfInnerInOuter, colorMap, editor, false);
+		}
+		return start;
+	}
+
+	function colorFromTo(offset: number, start: number, end: number, decoration: vscode.TextEditorDecorationType) {
+		const rangeStart = offset + start + 2;
+		const rangeEnd = offset + end + 2;
+		const range = new vscode.Range(editor.document.positionAt(rangeStart), editor.document.positionAt(rangeEnd));
+		colorMap.set(decoration, [...(colorMap.get(decoration) ?? []), range]);
 	}
 }
