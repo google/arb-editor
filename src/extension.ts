@@ -128,7 +128,7 @@ function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 				isInMetadata = -1;
 			}
 		},
-	});
+	}, { disallowComments: true });
 	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
 		editor.setDecorations(key, value ?? []);
 	});
