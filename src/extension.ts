@@ -48,7 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 			const activeTextEditor = vscode.window.activeTextEditor;
 			if (activeTextEditor !== undefined) {
-				pendingIcuMessageDecoration = setTimeout(() => updateIcuMessageDecorations(activeTextEditor), 1000);
+				pendingIcuMessageDecoration = setTimeout(() => updateIcuMessageDecorations(activeTextEditor), 500);
 			}
 		}
 	}, null, context.subscriptions));
@@ -88,8 +88,9 @@ const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	}
 });
 
-const selectRegex = /^(\w+\s*,\s*select\s*,(?:\s*\w+\{.*\})*)$/g;
-const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/g;
+const selectRegex = /^(\w+\s*,\s*select\s*,(?:\s*\w+\{.*\})*)$/;
+const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/;
+const argNameRegex = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
 function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 	let colorMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>();
 	if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
@@ -115,7 +116,7 @@ function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 			if (property.startsWith('@')) {
 				isInMetadata = currentLevel;
 			}
-			if (isInMetadata === currentLevel - 1 && property === "placeholders") {
+			if (isInMetadata === currentLevel - 1 && property === 'placeholders') {
 				isInPlaceholders = currentLevel;
 			}
 		},
@@ -135,7 +136,9 @@ function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 }
 
 function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean) {
-	const vals = XRegExp.matchRecursive(value, '\\{', '\\}', 'g');
+	const vals = XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
+		escapeChar: '\''
+	});
 	for (const part of vals) {
 		let start = value.indexOf('{' + part + '}');
 		if (selectRegex.exec(part) !== null) {
@@ -144,7 +147,9 @@ function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEdito
 			start = colorComplex(pluralDecoration, part, start);
 		} else {
 			if (isOuter) {
-				colorFromTo(offset, start, start + part.length, argDecoration);
+				if (argNameRegex.exec(part) !== null) {
+					colorFromTo(offset, start, start + part.length, argDecoration);
+				}
 			} else {
 				colorPart(part, offset + start + 1, colorMap, editor, true);
 			}
