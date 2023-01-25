@@ -6,13 +6,13 @@
   "engines": {
     "vscode": "^1.72.2"
   },
-  "homepage": "https://github.com/mosum/arb-editor",
+  "homepage": "https://github.com/google/arb-editor",
   "bugs": {
-    "url": "https://github.com/mosum/arb-editor/issues"
+    "url": "https://github.com/google/arb-editor/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mosum/arb-editor"
+    "url": "https://github.com/google/arb-editor"
   },
   "license": "Apache-2.0",
   "author": "Moritz Sümmermann <mosum@google.com>",
@@ -20,7 +20,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onLanguage:json"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -34,6 +34,14 @@
       {
         "fileMatch": "*.arb",
         "url": "./schemas/arb.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "json",
+        "extensions": [
+          "arb"
+        ]
       }
     ]
   },
