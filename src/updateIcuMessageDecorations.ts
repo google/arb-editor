@@ -81,13 +81,14 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 		},
 	}, { disallowComments: true });
 	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
+		editor.setDecorations(key, []);
+	});
+	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
 		editor.setDecorations(key, value ?? []);
 	});
 }
 function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean) {
-	const vals = XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
-		escapeChar: '\''
-	});
+	const vals = matchCurlyBrackets(value);
 	for (const part of vals) {
 		let start = value.indexOf('{' + part + '}');
 		if (selectRegex.exec(part) !== null) {
@@ -108,7 +109,7 @@ function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEdito
 	function colorComplex(decoration: vscode.TextEditorDecorationType, part: string, start: number) {
 		const firstComma = part.indexOf(',');
 		colorFromTo(offset, start, start + firstComma, argDecoration);
-		const innerVals = XRegExp.matchRecursive(part, '\\{', '\\}', 'g');
+		const innerVals = matchCurlyBrackets(part);
 		const secondComma = part.indexOf(',', firstComma + 1);
 		start = start + secondComma + 1;
 		for (const innerpart of innerVals) {
@@ -129,3 +130,10 @@ function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEdito
 		colorMap.set(decoration, [...(colorMap.get(decoration) ?? []), range]);
 	}
 }
+function matchCurlyBrackets(value: string) {
+	return XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
+		escapeChar: '\'',
+		unbalanced: 'skip'
+	});
+}
+
