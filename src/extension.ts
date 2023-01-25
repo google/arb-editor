@@ -23,7 +23,6 @@ module.exports = {
 let pendingFooJsonDecoration: NodeJS.Timeout | undefined;
 
 import * as vscode from 'vscode';
-import { ConfigurationTarget, workspace } from 'vscode';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
