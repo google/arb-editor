@@ -21,8 +21,7 @@ module.exports = {
 let pendingIcuMessageDecoration: NodeJS.Timeout | undefined;
 
 import * as vscode from 'vscode';
-import { ConfigurationTarget, workspace } from 'vscode';
-import { updateIcuMessageDecorations } from './updateIcuMessageDecorations';
+import { updateIcuMessageDecorations, diagnostics } from './updateIcuMessageDecorations';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -52,6 +51,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	if (activeTextEditor !== undefined) {
 		updateIcuMessageDecorations(activeTextEditor);
 	}
+
+
+	// At extension startup
+	context.subscriptions.push(diagnostics);
 }
 
 // This method is called when your extension is deactivated
