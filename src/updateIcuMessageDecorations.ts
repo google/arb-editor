@@ -42,7 +42,11 @@ const selectRegex = /^(\w+\s*,\s*select\s*,(?:\s*\w+\{.*\})*)$/;
 const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/;
 const argNameRegex = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
 export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
-	let colorMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>();
+	let colorMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
+		[argDecoration, []],
+		[selectDecoration, []],
+		[pluralDecoration, []],
+	]);
 	if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
 		return;
 	}
@@ -81,10 +85,7 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 		},
 	}, { disallowComments: true });
 	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
-		editor.setDecorations(key, []);
-	});
-	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
-		editor.setDecorations(key, value ?? []);
+		editor.setDecorations(key, value);
 	});
 }
 function colorPart(value: string, offset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean) {
