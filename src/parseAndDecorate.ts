@@ -103,7 +103,7 @@ export class DecoratorAndParser {
 			onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
 				if (placeholderLevel === nestingLevel - 1) {
 					if (!placeHoldersForKey.get(messageKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
-						showErrorAt(offset + 1, offset + property.length + 1, `Placeholder ${property} is being declared, but not used in message.`, vscode.DiagnosticSeverity.Warning);
+						showErrorAt(offset + 1, offset + property.length + 1, `Placeholder "${property}" is being declared, but not used in message.`, vscode.DiagnosticSeverity.Warning);
 					}
 					definedPlaceholders.push(property);
 					decorateAt(offset + 1, offset + property.length + 1, argDecoration);
@@ -116,7 +116,7 @@ export class DecoratorAndParser {
 						const isGlobalMetadata = property.startsWith('@@');
 						const messageKeyExists = placeHoldersForKey.has(property.substring(1));
 						if (!isGlobalMetadata && !messageKeyExists) {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Metadata for an undefined key. Add a message key with the name ${property.substring(1)}.`, vscode.DiagnosticSeverity.Error);
+							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Metadata for an undefined key. Add a message key with the name "${property.substring(1)}".`, vscode.DiagnosticSeverity.Error);
 						}
 						metadataLevel = nestingLevel;
 					} else {
@@ -124,7 +124,7 @@ export class DecoratorAndParser {
 							messageKey = property;
 							placeHoldersForKey.set(messageKey, []);
 						} else {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `${property} is not a valid message key.`, vscode.DiagnosticSeverity.Error);
+							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Key "${property}" is not a valid message key.`, vscode.DiagnosticSeverity.Error);
 						}
 					}
 				}
@@ -138,7 +138,7 @@ export class DecoratorAndParser {
 					placeholderLevel = null;
 					for (const placeholder of placeHoldersForKey.get(messageKey!)!) {
 						if (!definedPlaceholders.includes(placeholder.value)) {
-							showErrorAt(placeholder.start, placeholder.end, `Placeholder ${placeholder.value} not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
+							showErrorAt(placeholder.start, placeholder.end, `Placeholder "${placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
 						}
 					}
 					definedPlaceholders = [];
@@ -171,7 +171,7 @@ export class DecoratorAndParser {
 							placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
 							decorateAt(partOffset, partOffsetEnd, argDecoration);
 						} else {
-							showErrorAt(partOffset, partOffsetEnd, 'This is not a valid argument name.', vscode.DiagnosticSeverity.Error);
+							showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid argument name.`, vscode.DiagnosticSeverity.Error);
 						}
 					} else {
 						decorateMessage(part, partOffset - 1, colorMap, editor, true);

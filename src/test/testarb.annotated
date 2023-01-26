@@ -2,9 +2,9 @@
     "@@locale": "en",
     "appName": "Demo app",
     "pageLog{inUsername": "Your username",
-     ^^^^^^^^^^^^^^^^^^[Error]
+     ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key."
     "@pageLoginUsername": {},
-     ^^^^^^^^^^^^^^^^^^[Error]
+     ^^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "pageLoginUsername"."
     "pageLoginPassword": "Your password",
     "@pageLoginPassword": {},
     "pageHomeTitle": "Welcome {firstName}",
@@ -49,25 +49,25 @@
         }
     },
     "commonVehicleType": "{vehicleType, s{elect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]:"Unbalanced curly bracket found. Try escaping the bracket using a single quote ' ."
     "@commonVeshicleType": {
-     ^^^^^^^^^^^^^^^^^^^[Error]
+     ^^^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "commonVeshicleType"."
         "description": "Vehicle type",
         "placeholders": {
             "vehicleType": {}
              ^^^^^^^^^^^[decoration]argument
-             ^^^^^^^^^^^[Warning]
+             ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" is being declared, but not used in message."
         }
     },
     "pageHomeBalance": "Your balance is {am[ount} on {date2}",
                                                       ^^^^^[decoration]argument
-                                         ^^^^^^^[Error]
-                                                      ^^^^^[Warning]
+                                         ^^^^^^^[Error]:""am[ount" is not a valid argument name."
+                                                      ^^^^^[Warning]:"Placeholder "date2" not defined in the message metadata."
     "@pageHomeBalance": {
         "placeholders": {
             "amount": {
              ^^^^^^[decoration]argument
-             ^^^^^^[Warning]
+             ^^^^^^[Warning]:"Placeholder "amount" is being declared, but not used in message."
                 "type": "double",
                 "format": "currency",
                 "example": "$1000.00",
@@ -81,7 +81,7 @@
             },
             "date": {
              ^^^^[decoration]argument
-             ^^^^[Warning]
+             ^^^^[Warning]:"Placeholder "date" is being declared, but not used in message."
                 "type": "DateTime",
                 "format": "yMd",
                 "example": "11/10/2021",
