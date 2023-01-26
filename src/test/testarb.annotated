@@ -1,0 +1,92 @@
+{
+    "@@locale": "en",
+    "appName": "Demo app",
+    "pageLog{inUsername": "Your username",
+     ^^^^^^^^^^^^^^^^^^[Error]
+    "@pageLoginUsername": {},
+     ^^^^^^^^^^^^^^^^^^[Error]
+    "pageLoginPassword": "Your password",
+    "@pageLoginPassword": {},
+    "pageHomeTitle": "Welcome {firstName}",
+                               ^^^^^^^^^[decoration]argument
+    "@pageHomeTitle": {
+        "description": "Welcome message on the Home screen",
+        "placeholders": {
+            "firstName": {}
+             ^^^^^^^^^[decoration]argument
+        }
+    },
+    "pageHomeInboxCount": "{count, plural, zero{I have {vehicleType, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
+                            ^^^^^[decoration]argument
+                                                        ^^^^^^^^^^^[decoration]argument
+                                                                                                                                                                                                                       ^^^^^[decoration]argument
+                                                                            ^^^^^[decoration]select
+                                                                                         ^^^^^^^^[decoration]select
+                                                                                                                        ^^^^[decoration]select
+                                                                                                                                             ^^^^[decoration]select
+                                          ^^^^^[decoration]plural
+                                                                                                                                                                           ^^^[decoration]plural
+                                                                                                                                                                                                       ^^^^^[decoration]plural
+    "@pageHomeInboxCount": {
+        "description": "New messages count on the Home screen",
+        "placeholders": {
+            "count": {},
+             ^^^^^[decoration]argument
+            "vehicleType": {}
+             ^^^^^^^^^^^[decoration]argument
+        }
+    },
+    "pageHomeBirthday": "Today is {sex, select, male{his b'{irthday} female{her birthday} other{their birthday}}.",
+                                   ^^^[decoration]argument
+                                               ^^^^^[decoration]select
+                                                                     ^^^^^^[decoration]select
+                                                                                          ^^^^^[decoration]select
+    "@pageHomeBirthday": {
+        "description": "Birthday message on the Home screen",
+        "placeholders": {
+            "sex": {}
+             ^^^[decoration]argument
+        }
+    },
+    "commonVehicleType": "{vehicleType, s{elect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]
+    "@commonVeshicleType": {
+     ^^^^^^^^^^^^^^^^^^^[Error]
+        "description": "Vehicle type",
+        "placeholders": {
+            "vehicleType": {}
+             ^^^^^^^^^^^[decoration]argument
+             ^^^^^^^^^^^[Warning]
+        }
+    },
+    "pageHomeBalance": "Your balance is {am[ount} on {date2}",
+                                                      ^^^^^[decoration]argument
+                                         ^^^^^^^[Error]
+                                                      ^^^^^[Warning]
+    "@pageHomeBalance": {
+        "placeholders": {
+            "amount": {
+             ^^^^^^[decoration]argument
+             ^^^^^^[Warning]
+                "type": "double",
+                "format": "currency",
+                "example": "$1000.00",
+                "description": "Account balance",
+                "optionalParameters": {
+                    "decimalDigits": 2,
+                    "name": "USD",
+                    "symbol": "$",
+                    "customPattern": "¤#0.00"
+                }
+            },
+            "date": {
+             ^^^^[decoration]argument
+             ^^^^[Warning]
+                "type": "DateTime",
+                "format": "yMd",
+                "example": "11/10/2021",
+                "description": "Balance date"
+            }
+        }
+    }
+}

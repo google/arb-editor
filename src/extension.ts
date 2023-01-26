@@ -54,7 +54,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		decoratorAndParser.parseAndDecorate(activeTextEditor);
 	}
 
-
 	// At extension startup
 }
 

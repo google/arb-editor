@@ -14,7 +14,7 @@ import { JSONPath, visit } from 'jsonc-parser';
 import * as vscode from 'vscode';
 import XRegExp = require('xregexp');
 
-const argDecoration = vscode.window.createTextEditorDecorationType({
+export const argDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#ff6f00'
 	},
@@ -22,7 +22,7 @@ const argDecoration = vscode.window.createTextEditorDecorationType({
 		color: '#fff9c4'
 	}
 });
-const selectDecoration = vscode.window.createTextEditorDecorationType({
+export const selectDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#6a1b9a'
 	},
@@ -30,7 +30,7 @@ const selectDecoration = vscode.window.createTextEditorDecorationType({
 		color: '#ce93d8'
 	}
 });
-const pluralDecoration = vscode.window.createTextEditorDecorationType({
+export const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#0277bd'
 	},
@@ -58,11 +58,11 @@ class Literal {
 export class DecoratorAndParser {
 	diagnostics = vscode.languages.createDiagnosticCollection("arb");
 
-	constructor(context: vscode.ExtensionContext) {
-		context.subscriptions.push(this.diagnostics);
+	constructor(context?: vscode.ExtensionContext) {
+		context?.subscriptions.push(this.diagnostics);
 	}
 
-	parseAndDecorate(editor: vscode.TextEditor) {
+	parseAndDecorate(editor: vscode.TextEditor): { diagnostics: vscode.Diagnostic[]; decorations: Map<vscode.TextEditorDecorationType, vscode.Range[]>; } | null {
 		// Prefill decorations map to avoid having old decoration hanging around
 		let decorationsMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
 			[argDecoration, []],
@@ -76,7 +76,7 @@ export class DecoratorAndParser {
 
 		// Only trigger on arb files
 		if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
-			return;
+			return null;
 		}
 		let nestingLevel = 0;
 		let placeholderLevel: number | null;
@@ -211,9 +211,9 @@ export class DecoratorAndParser {
 			const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
 			diagnosticsList.push(new vscode.Diagnostic(range, errorMessage, severity));
 		}
+
+		return { diagnostics: diagnosticsList, decorations: decorationsMap };
 	}
-
-
 }
 function matchCurlyBrackets(value: string) {
 	return XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {

@@ -12,17 +12,79 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as assert from 'assert';
+import path = require('path');
+import { TextEncoder } from 'util';
 
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
+import { argDecoration, selectDecoration, pluralDecoration, DecoratorAndParser } from '../../parseAndDecorate';
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
+	[argDecoration, '[decoration]argument'],
+	[selectDecoration, '[decoration]select'],
+	[pluralDecoration, '[decoration]plural'],
+]);
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+suite('Extension Test Suite', async () => {
+	test("should annotate function with parameters", async () => {
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
+		const goldenEditor = await getEditor('testarb.annotated');
+
+		assert.equal(contentWithAnnotations, goldenEditor.document.getText());
+		// await regenerateGolden(contentWithAnnotations);
 	});
 });
+
+const testFolderLocation: string = "/../../../src/test/";
+
+async function regenerateGolden(contentWithAnnotations: string) {
+	const uri = vscode.Uri.file(path.join(__dirname, testFolderLocation, 'testarb.annotated'));
+	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(contentWithAnnotations));
+}
+
+async function buildContentWithAnnotations(filename: string) {
+	const editor = await getEditor(filename);
+	const decorations = new DecoratorAndParser().parseAndDecorate(editor);
+	const content = editor.document.getText();
+	const annotationsForLine = new Map<number, string[]>();
+	for (const entry of decorations?.decorations.entries() ?? []) {
+		const decorationType = entry[0];
+		for (const range of entry[1]) {
+			for (let lineNumber = range.start.line; lineNumber <= range.end.line; lineNumber++) {
+				const line = editor.document.lineAt(lineNumber);
+				const offsetInLine = range.start.character - line.range.start.character;
+				const lengthInLine = (line.range.end.character - range.start.character) - (line.range.end.character - range.end.character);
+				const annotation = ' '.repeat(offsetInLine) + '^'.repeat(lengthInLine) + annotationNames.get(decorationType)!;
+				annotationsForLine.set(lineNumber, [...(annotationsForLine.get(lineNumber) ?? []), annotation]);
+			}
+		}
+	}
+	for (const diagnostic of decorations?.diagnostics ?? []) {
+		const range = diagnostic.range;
+		for (let lineNumber = range.start.line; lineNumber <= range.end.line; lineNumber++) {
+			const line = editor.document.lineAt(lineNumber);
+			const offsetInLine = range.start.character - line.range.start.character;
+			const lengthInLine = (line.range.end.character - range.start.character) - (line.range.end.character - range.end.character);
+			const annotation = ' '.repeat(offsetInLine) + '^'.repeat(lengthInLine) + '[' + vscode.DiagnosticSeverity[diagnostic.severity] + ']';
+			annotationsForLine.set(lineNumber, [...(annotationsForLine.get(lineNumber) ?? []), annotation]);
+		}
+	}
+	const lines = content.split('\n');
+	const numLines = lines.length;
+	for (let index = numLines; index > 0; index--) {
+		if (annotationsForLine.has(index)) {
+			lines.splice(index + 1, 0, ...annotationsForLine.get(index)!);
+		}
+	}
+	const contentWithAnnotations = lines.join('\n');
+	return contentWithAnnotations;
+}
+
+async function getEditor(filename: string) {
+	const testFilePath = path.join(__dirname, testFolderLocation, filename);
+	const uri = vscode.Uri.file(testFilePath);
+	const document = await vscode.workspace.openTextDocument(uri);
+	const editor = await vscode.window.showTextDocument(document);
+	return editor;
+}
