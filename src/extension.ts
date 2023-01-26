@@ -55,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		{ language: 'json', pattern: `**/*.arb` },
 		{
 			provideCompletionItems(document, position, token, context) {
+				//TODO(mosum):Integrate this with the parser, show relevant snippets at the right positions
 				return completions;
 			}
 		},
