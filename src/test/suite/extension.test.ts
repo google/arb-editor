@@ -29,17 +29,19 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 suite('Extension Test Suite', async () => {
 	test("should annotate function with parameters", async () => {
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
-		// const goldenEditor = await getEditor('testarb.annotated');
+		const goldenEditor = await getEditor('testarb.annotated');
+		assert.equal(contentWithAnnotations, goldenEditor.document.getText());
 
-		// assert.equal(contentWithAnnotations, goldenEditor.document.getText());
-		await regenerateGolden(contentWithAnnotations);
+		// Uncomment this line to regenerate the golden test file
+		// await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
 	});
 });
 
+
 const testFolderLocation: string = "/../../../src/test/";
 
-async function regenerateGolden(contentWithAnnotations: string) {
-	const uri = vscode.Uri.file(path.join(__dirname, testFolderLocation, 'testarb.annotated'));
+async function regenerateGolden(contentWithAnnotations: string, goldenFilename: string) {
+	const uri = vscode.Uri.file(path.join(__dirname, testFolderLocation, goldenFilename));
 	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(contentWithAnnotations));
 }
 
