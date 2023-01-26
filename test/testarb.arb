@@ -12,11 +12,12 @@
             "firstName": {}
         }
     },
-    "pageHomeInboxCount": "{count, plural, zero{I have {vehicleTyp, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
+    "pageHomeInboxCount": "{count, plural, zero{I have {vehicleType, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
     "@pageHomeInboxCount": {
         "description": "New messages count on the Home screen",
         "placeholders": {
-            "count": {}
+            "count": {},
+            "vehicleType": {}
         }
     },
     "pageHomeBirthday": "Today is {sex, select, male{his b'{irthday} female{her birthday} other{their birthday}}.",
