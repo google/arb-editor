@@ -44,6 +44,7 @@ const pluralDecoration = vscode.window.createTextEditorDecorationType({
 const selectRegex = /^(\w+\s*,\s*(?:select|gender)\s*,(?:\s*\w+\{.*\})*)$/;
 const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/;
 const argNameRegex = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
+const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/;
 
 class Literal {
 	constructor(
@@ -85,8 +86,12 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 			if (nestingLevel === 1) {
 				try {
 					decorateMessage(value, offset, decorationsMap, editor, true);
-				} catch (error) {
-					showErrorAt(offset + 1, offset + value.length + 1, 'Unbalanced curly bracket found. Try escaping the bracket using a single quote \' .', vscode.DiagnosticSeverity.Error);
+				} catch (error: any) {
+					if (String(error).startsWith('Error: Unbalanced ')) {//Very hacky, but better than not checking at all... The error has no special type, unfortunately.
+						showErrorAt(offset + 1, offset + value.length + 1, 'Unbalanced curly bracket found. Try escaping the bracket using a single quote \' .', vscode.DiagnosticSeverity.Error);
+					} else {
+						throw error;
+					}
 				}
 			}
 		},
@@ -103,16 +108,22 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 			}
 			if (nestingLevel === 1) {
 				const isMetadata = property.startsWith('@');
+				const propertyOffsetEnd = offset + property.length + 1;
+				const propertyOffsetStart = offset + 1;
 				if (isMetadata) {
 					const isGlobalMetadata = property.startsWith('@@');
 					const messageKeyExists = placeHoldersForKey.has(property.substring(1));
 					if (!isGlobalMetadata && !messageKeyExists) {
-						showErrorAt(offset + 1, offset + property.length + 1, 'Metadata for an undefined key.', vscode.DiagnosticSeverity.Error);
+						showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Metadata for an undefined key. Add a message key with the name ${property.substring(1)}.`, vscode.DiagnosticSeverity.Error);
 					}
 					metadataLevel = nestingLevel;
 				} else {
-					messageKey = property;
-					placeHoldersForKey.set(messageKey, []);
+					if (keyNameRegex.exec(property) !== null) {
+						messageKey = property;
+						placeHoldersForKey.set(messageKey, []);
+					} else {
+						showErrorAt(propertyOffsetStart, propertyOffsetEnd, 'This is not a valid message key.', vscode.DiagnosticSeverity.Error);
+					}
 				}
 			}
 			if (metadataLevel === nestingLevel - 1 && property === 'placeholders') {
@@ -141,11 +152,6 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 	decorationsMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
 		editor.setDecorations(key, value);
 	});
-
-	function showErrorAt(start: number, end: number, errorMessage: string, severity: vscode.DiagnosticSeverity) {
-		const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
-		diagnosticsList.push(new vscode.Diagnostic(range, errorMessage, severity));
-	}
 
 	function decorateMessage(messageString: string, globalOffset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean): void {
 		const vals = matchCurlyBrackets(messageString);
@@ -199,6 +205,10 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 		decorationsMap.get(decoration)!.push(range);
 	}
 
+	function showErrorAt(start: number, end: number, errorMessage: string, severity: vscode.DiagnosticSeverity) {
+		const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
+		diagnosticsList.push(new vscode.Diagnostic(range, errorMessage, severity));
+	}
 }
 function matchCurlyBrackets(value: string) {
 	return XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {

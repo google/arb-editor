@@ -1,7 +1,7 @@
 {
     "@@locale": "en",
     "appName": "Demo app",
-    "pageLoginUsername": "Your username",
+    "pageLog{inUsername": "Your username",
     "@pageLoginUsername": {},
     "pageLoginPassword": "Your password",
     "@pageLoginPassword": {},
