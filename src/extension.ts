@@ -21,15 +21,17 @@ module.exports = {
 let pendingDecorations: NodeJS.Timeout | undefined;
 
 import * as vscode from 'vscode';
-import { parseAndDecorate, diagnostics } from './parseAndDecorate';
+import { DecoratorAndParser } from './parseAndDecorate';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
+	const decoratorAndParser = new DecoratorAndParser(context);
+
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {
-			return parseAndDecorate(editor);
+			return decoratorAndParser.parseAndDecorate(editor);
 		}
 	}, null, context.subscriptions));
 
@@ -41,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 			const activeTextEditor = vscode.window.activeTextEditor;
 			if (activeTextEditor !== undefined) {
-				pendingDecorations = setTimeout(() => parseAndDecorate(activeTextEditor), 500);
+				pendingDecorations = setTimeout(() => decoratorAndParser.parseAndDecorate(activeTextEditor), 500);
 			}
 		}
 	}, null, context.subscriptions));
@@ -49,12 +51,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate the active editor now
 	const activeTextEditor = vscode.window.activeTextEditor;
 	if (activeTextEditor !== undefined) {
-		parseAndDecorate(activeTextEditor);
+		decoratorAndParser.parseAndDecorate(activeTextEditor);
 	}
 
 
 	// At extension startup
-	context.subscriptions.push(diagnostics);
 }
 
 // This method is called when your extension is deactivated
