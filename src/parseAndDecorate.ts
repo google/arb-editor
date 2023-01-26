@@ -14,7 +14,7 @@ import { JSONPath, visit } from 'jsonc-parser';
 import * as vscode from 'vscode';
 import XRegExp = require('xregexp');
 
-const argDecoration = vscode.window.createTextEditorDecorationType({
+export const argDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#ff6f00'
 	},
@@ -22,7 +22,7 @@ const argDecoration = vscode.window.createTextEditorDecorationType({
 		color: '#fff9c4'
 	}
 });
-const selectDecoration = vscode.window.createTextEditorDecorationType({
+export const selectDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#6a1b9a'
 	},
@@ -30,7 +30,7 @@ const selectDecoration = vscode.window.createTextEditorDecorationType({
 		color: '#ce93d8'
 	}
 });
-const pluralDecoration = vscode.window.createTextEditorDecorationType({
+export const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#0277bd'
 	},
@@ -58,11 +58,11 @@ class Literal {
 export class DecoratorAndParser {
 	diagnostics = vscode.languages.createDiagnosticCollection("arb");
 
-	constructor(context: vscode.ExtensionContext) {
-		context.subscriptions.push(this.diagnostics);
+	constructor(context?: vscode.ExtensionContext) {
+		context?.subscriptions.push(this.diagnostics);
 	}
 
-	parseAndDecorate(editor: vscode.TextEditor) {
+	parseAndDecorate(editor: vscode.TextEditor): { diagnostics: vscode.Diagnostic[]; decorations: Map<vscode.TextEditorDecorationType, vscode.Range[]>; } | null {
 		// Prefill decorations map to avoid having old decoration hanging around
 		let decorationsMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
 			[argDecoration, []],
@@ -76,7 +76,7 @@ export class DecoratorAndParser {
 
 		// Only trigger on arb files
 		if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
-			return;
+			return null;
 		}
 		let nestingLevel = 0;
 		let placeholderLevel: number | null;
@@ -103,7 +103,7 @@ export class DecoratorAndParser {
 			onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
 				if (placeholderLevel === nestingLevel - 1) {
 					if (!placeHoldersForKey.get(messageKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
-						showErrorAt(offset + 1, offset + property.length + 1, `Placeholder ${property} is being declared, but not used in message.`, vscode.DiagnosticSeverity.Warning);
+						showErrorAt(offset + 1, offset + property.length + 1, `Placeholder "${property}" is being declared, but not used in message.`, vscode.DiagnosticSeverity.Warning);
 					}
 					definedPlaceholders.push(property);
 					decorateAt(offset + 1, offset + property.length + 1, argDecoration);
@@ -116,7 +116,7 @@ export class DecoratorAndParser {
 						const isGlobalMetadata = property.startsWith('@@');
 						const messageKeyExists = placeHoldersForKey.has(property.substring(1));
 						if (!isGlobalMetadata && !messageKeyExists) {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Metadata for an undefined key. Add a message key with the name ${property.substring(1)}.`, vscode.DiagnosticSeverity.Error);
+							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Metadata for an undefined key. Add a message key with the name "${property.substring(1)}".`, vscode.DiagnosticSeverity.Error);
 						}
 						metadataLevel = nestingLevel;
 					} else {
@@ -124,7 +124,7 @@ export class DecoratorAndParser {
 							messageKey = property;
 							placeHoldersForKey.set(messageKey, []);
 						} else {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `${property} is not a valid message key.`, vscode.DiagnosticSeverity.Error);
+							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Key "${property}" is not a valid message key.`, vscode.DiagnosticSeverity.Error);
 						}
 					}
 				}
@@ -138,7 +138,7 @@ export class DecoratorAndParser {
 					placeholderLevel = null;
 					for (const placeholder of placeHoldersForKey.get(messageKey!)!) {
 						if (!definedPlaceholders.includes(placeholder.value)) {
-							showErrorAt(placeholder.start, placeholder.end, `Placeholder ${placeholder.value} not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
+							showErrorAt(placeholder.start, placeholder.end, `Placeholder "${placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
 						}
 					}
 					definedPlaceholders = [];
@@ -171,7 +171,7 @@ export class DecoratorAndParser {
 							placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
 							decorateAt(partOffset, partOffsetEnd, argDecoration);
 						} else {
-							showErrorAt(partOffset, partOffsetEnd, 'This is not a valid argument name.', vscode.DiagnosticSeverity.Error);
+							showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid argument name.`, vscode.DiagnosticSeverity.Error);
 						}
 					} else {
 						decorateMessage(part, partOffset - 1, colorMap, editor, true);
@@ -211,9 +211,9 @@ export class DecoratorAndParser {
 			const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
 			diagnosticsList.push(new vscode.Diagnostic(range, errorMessage, severity));
 		}
+
+		return { diagnostics: diagnosticsList, decorations: decorationsMap };
 	}
-
-
 }
 function matchCurlyBrackets(value: string) {
 	return XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
