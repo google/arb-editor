@@ -19,21 +19,21 @@
             "count": {}
         }
     },
-    "pageHomeBirthday": "Today is {sex, select, male{his birthday} female{her birthday} other{their birthday}}.",
+    "pageHomeBirthday": "Today is {sex, select, male{his b'{irthday} female{her birthday} other{their birthday}}.",
     "@pageHomeBirthday": {
         "description": "Birthday message on the Home screen",
         "placeholders": {
             "sex": {}
         }
     },
-    "commonVehicleType": "{vehicleType, select, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
-    "@commonVehicleType": {
+    "commonVehicleType": "{vehicleType, s{elect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+    "@commonVeshicleType": {
         "description": "Vehicle type",
         "placeholders": {
             "vehicleType": {}
         }
     },
-    "pageHomeBalance": "Your balance is {amount} on {date}",
+    "pageHomeBalance": "Your balance is {am[ount} on {date2}",
     "@pageHomeBalance": {
         "placeholders": {
             "amount": {
