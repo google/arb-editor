@@ -76,10 +76,10 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 		return;
 	}
 	let nestingLevel = 0;
-	let isInPlaceholders: number | null;
-	let isInMetadata: number | null;
-	let currentMessageKey: string | null;
-	let currentlyDefinedPlaceholders: string[] = [];
+	let placeholderLevel: number | null;
+	let metadataLevel: number | null;
+	let messageKey: string | null;
+	let definedPlaceholders: string[] = [];
 	visit(editor.document.getText(), {
 		onLiteralValue: (value: string, offset: number) => {
 			if (nestingLevel === 1) {
@@ -94,41 +94,44 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 			nestingLevel++;
 		},
 		onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
-			if (isInPlaceholders === nestingLevel - 1) {
-				if (!placeHoldersForKey.get(currentMessageKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
+			if (placeholderLevel === nestingLevel - 1) {
+				if (!placeHoldersForKey.get(messageKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
 					showErrorAt(offset + 1, offset + property.length + 1, 'Placeholder is being declared, but not used in message.', vscode.DiagnosticSeverity.Warning);
 				}
-				currentlyDefinedPlaceholders.push(property);
+				definedPlaceholders.push(property);
 				decorateAt(offset + 1, offset + property.length + 1, argDecoration);
 			}
 			if (nestingLevel === 1) {
-				if (property.startsWith('@')) {
-					if (!property.startsWith('@@') && !placeHoldersForKey.has(property.substring(1))) {
+				const isMetadata = property.startsWith('@');
+				if (isMetadata) {
+					const isGlobalMetadata = property.startsWith('@@');
+					const messageKeyExists = placeHoldersForKey.has(property.substring(1));
+					if (!isGlobalMetadata && !messageKeyExists) {
 						showErrorAt(offset + 1, offset + property.length + 1, 'Metadata for an undefined key.', vscode.DiagnosticSeverity.Error);
 					}
-					isInMetadata = nestingLevel;
+					metadataLevel = nestingLevel;
 				} else {
-					currentMessageKey = property;
-					placeHoldersForKey.set(currentMessageKey, []);
+					messageKey = property;
+					placeHoldersForKey.set(messageKey, []);
 				}
 			}
-			if (isInMetadata === nestingLevel - 1 && property === 'placeholders') {
-				isInPlaceholders = nestingLevel;
+			if (metadataLevel === nestingLevel - 1 && property === 'placeholders') {
+				placeholderLevel = nestingLevel;
 			}
 		},
 		onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
 			nestingLevel--;
-			if (isInPlaceholders !== null && nestingLevel < isInPlaceholders) {
-				isInPlaceholders = null;
-				for (const placeholder of placeHoldersForKey.get(currentMessageKey!)!) {
-					if (!currentlyDefinedPlaceholders.includes(placeholder.value)) {
+			if (placeholderLevel !== null && nestingLevel < placeholderLevel) {
+				placeholderLevel = null;
+				for (const placeholder of placeHoldersForKey.get(messageKey!)!) {
+					if (!definedPlaceholders.includes(placeholder.value)) {
 						showErrorAt(placeholder.start, placeholder.end, 'Placeholder not defined in the message metadata.', vscode.DiagnosticSeverity.Warning);
 					}
 				}
-				currentlyDefinedPlaceholders = [];
+				definedPlaceholders = [];
 			}
-			if (isInMetadata !== null && nestingLevel < isInMetadata) {
-				isInMetadata = -1;
+			if (metadataLevel !== null && nestingLevel < metadataLevel) {
+				metadataLevel = -1;
 			}
 		},
 	}, { disallowComments: true });
@@ -157,7 +160,7 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 				const partOffsetEnd = globalOffset + localOffset + part.length + 2;
 				if (isOuter) {
 					if (argNameRegex.exec(part) !== null) {
-						placeHoldersForKey.get(currentMessageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
+						placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
 						decorateAt(partOffset, partOffsetEnd, argDecoration);
 					} else {
 						showErrorAt(partOffset, partOffsetEnd, 'This is not a valid argument name.', vscode.DiagnosticSeverity.Error);
@@ -175,7 +178,7 @@ export function parseAndDecorate(editor: vscode.TextEditor) {
 			const firstComma = complexString.indexOf(',');
 			const start = globalOffset + localOffset + 2;
 			const end = globalOffset + localOffset + firstComma + 2;
-			placeHoldersForKey.get(currentMessageKey!)!.push(new Literal(complexString.substring(0, firstComma), start, end));
+			placeHoldersForKey.get(messageKey!)!.push(new Literal(complexString.substring(0, firstComma), start, end));
 			decorateAt(start, end, argDecoration);
 			const bracketedValues = matchCurlyBrackets(complexString);
 			const secondComma = complexString.indexOf(',', firstComma + 1);
