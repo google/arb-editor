@@ -24,12 +24,6 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "snippets": [
-      {
-        "language": "json",
-        "path": "./snippets/snippets.json"
-      }
-    ],
     "jsonValidation": [
       {
         "fileMatch": "*.arb",
