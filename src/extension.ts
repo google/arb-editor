@@ -18,10 +18,10 @@ module.exports = {
 	activate
 };
 
-let pendingIcuMessageDecoration: NodeJS.Timeout | undefined;
+let pendingDecorations: NodeJS.Timeout | undefined;
 
 import * as vscode from 'vscode';
-import { updateIcuMessageDecorations, diagnostics } from './updateIcuMessageDecorations';
+import { parseAndDecorate, diagnostics } from './parseAndDecorate';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -29,19 +29,19 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {
-			return updateIcuMessageDecorations(editor);
+			return parseAndDecorate(editor);
 		}
 	}, null, context.subscriptions));
 
 	// decorate when the document changes
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
 		if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
-			if (pendingIcuMessageDecoration) {
-				clearTimeout(pendingIcuMessageDecoration);
+			if (pendingDecorations) {
+				clearTimeout(pendingDecorations);
 			}
 			const activeTextEditor = vscode.window.activeTextEditor;
 			if (activeTextEditor !== undefined) {
-				pendingIcuMessageDecoration = setTimeout(() => updateIcuMessageDecorations(activeTextEditor), 500);
+				pendingDecorations = setTimeout(() => parseAndDecorate(activeTextEditor), 500);
 			}
 		}
 	}, null, context.subscriptions));
@@ -49,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate the active editor now
 	const activeTextEditor = vscode.window.activeTextEditor;
 	if (activeTextEditor !== undefined) {
-		updateIcuMessageDecorations(activeTextEditor);
+		parseAndDecorate(activeTextEditor);
 	}
 
 

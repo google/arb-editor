@@ -41,7 +41,7 @@ const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	}
 });
 
-const selectRegex = /^(\w+\s*,\s*select\s*,(?:\s*\w+\{.*\})*)$/;
+const selectRegex = /^(\w+\s*,\s*(?:select|gender)\s*,(?:\s*\w+\{.*\})*)$/;
 const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/;
 const argNameRegex = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
 
@@ -57,9 +57,9 @@ class Literal {
 	};
 }
 
-export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
-	// Prefill color map to avoid having old decoration hanging around
-	let colorMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
+export function parseAndDecorate(editor: vscode.TextEditor) {
+	// Prefill decorations map to avoid having old decoration hanging around
+	let decorationsMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
 		[argDecoration, []],
 		[selectDecoration, []],
 		[pluralDecoration, []],
@@ -68,7 +68,7 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 	diagnostics.set(editor.document.uri, []);
 	let diagnosticsList: vscode.Diagnostic[] = [];
 
-	// Map of arguments for each
+	// Map of arguments for each message key
 	let placeHoldersForKey = new Map<String, Literal[]>();
 
 	// Only trigger on arb files
@@ -76,15 +76,15 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 		return;
 	}
 	let nestingLevel = 0;
-	let isInPlaceholders = -1;
-	let isInMetadata = -1;
-	let currentKey: string | null;
+	let isInPlaceholders: number | null;
+	let isInMetadata: number | null;
+	let currentMessageKey: string | null;
 	let currentlyDefinedPlaceholders: string[] = [];
 	visit(editor.document.getText(), {
 		onLiteralValue: (value: string, offset: number) => {
 			if (nestingLevel === 1) {
 				try {
-					colorPart(value, offset, colorMap, editor, true);
+					decorateMessage(value, offset, decorationsMap, editor, true);
 				} catch (error) {
 					showErrorAt(offset + 1, offset + value.length + 1, 'Unbalanced curly bracket found. Try escaping the bracket using a single quote \' .', vscode.DiagnosticSeverity.Error);
 				}
@@ -95,12 +95,11 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 		},
 		onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
 			if (isInPlaceholders === nestingLevel - 1) {
-				console.log('Checking if ' + property + ' for ' + currentKey + ': ' + placeHoldersForKey.get(currentKey!));
-				if (!placeHoldersForKey.get(currentKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
+				if (!placeHoldersForKey.get(currentMessageKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
 					showErrorAt(offset + 1, offset + property.length + 1, 'Placeholder is being declared, but not used in message.', vscode.DiagnosticSeverity.Warning);
 				}
 				currentlyDefinedPlaceholders.push(property);
-				colorFromTo(offset + 1, offset + property.length + 1, argDecoration);
+				decorateAt(offset + 1, offset + property.length + 1, argDecoration);
 			}
 			if (nestingLevel === 1) {
 				if (property.startsWith('@')) {
@@ -109,8 +108,8 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 					}
 					isInMetadata = nestingLevel;
 				} else {
-					currentKey = property;
-					placeHoldersForKey.set(currentKey, []);
+					currentMessageKey = property;
+					placeHoldersForKey.set(currentMessageKey, []);
 				}
 			}
 			if (isInMetadata === nestingLevel - 1 && property === 'placeholders') {
@@ -119,22 +118,24 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 		},
 		onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
 			nestingLevel--;
-			if (nestingLevel < isInPlaceholders) {
-				isInPlaceholders = -1;
-				for (const placeholder of placeHoldersForKey.get(currentKey!)!) {
-					if(!currentlyDefinedPlaceholders.includes(placeholder.value)){
+			if (isInPlaceholders !== null && nestingLevel < isInPlaceholders) {
+				isInPlaceholders = null;
+				for (const placeholder of placeHoldersForKey.get(currentMessageKey!)!) {
+					if (!currentlyDefinedPlaceholders.includes(placeholder.value)) {
 						showErrorAt(placeholder.start, placeholder.end, 'Placeholder not defined in the message metadata.', vscode.DiagnosticSeverity.Warning);
 					}
 				}
 				currentlyDefinedPlaceholders = [];
 			}
-			if (nestingLevel < isInMetadata) {
+			if (isInMetadata !== null && nestingLevel < isInMetadata) {
 				isInMetadata = -1;
 			}
 		},
 	}, { disallowComments: true });
+
+
 	diagnostics.set(editor.document.uri, diagnosticsList);
-	colorMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
+	decorationsMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
 		editor.setDecorations(key, value);
 	});
 
@@ -143,56 +144,56 @@ export function updateIcuMessageDecorations(editor: vscode.TextEditor) {
 		diagnosticsList.push(new vscode.Diagnostic(range, errorMessage, severity));
 	}
 
-	function colorPart(value: string, globalOffset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean) {
-		const vals = matchCurlyBrackets(value);
+	function decorateMessage(messageString: string, globalOffset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean): void {
+		const vals = matchCurlyBrackets(messageString);
 		for (const part of vals) {
-			let localOffset = value.indexOf('{' + part + '}');
+			let localOffset = messageString.indexOf('{' + part + '}');
 			if (selectRegex.exec(part) !== null) {
-				localOffset = colorComplex(selectDecoration, part, localOffset);
+				decorateComplexMessage(selectDecoration, part, localOffset);
 			} else if (pluralRegex.exec(part) !== null) {
-				localOffset = colorComplex(pluralDecoration, part, localOffset);
+				decorateComplexMessage(pluralDecoration, part, localOffset);
 			} else {
 				const partOffset = globalOffset + localOffset + 2;
 				const partOffsetEnd = globalOffset + localOffset + part.length + 2;
 				if (isOuter) {
 					if (argNameRegex.exec(part) !== null) {
-						console.log('Adding ' + part + ' to ' + currentKey);
-						placeHoldersForKey.get(currentKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
-						colorFromTo(partOffset, partOffsetEnd, argDecoration);
+						placeHoldersForKey.get(currentMessageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
+						decorateAt(partOffset, partOffsetEnd, argDecoration);
 					} else {
 						showErrorAt(partOffset, partOffsetEnd, 'This is not a valid argument name.', vscode.DiagnosticSeverity.Error);
 					}
 				} else {
-					colorPart(part, partOffset - 1, colorMap, editor, true);
+					decorateMessage(part, partOffset - 1, colorMap, editor, true);
 				}
 			}
 		}
 
-		function colorComplex(decoration: vscode.TextEditorDecorationType, part: string, localOffset: number) {
-			const firstComma = part.indexOf(',');
+		/**
+		* Decorate ICU Message of type `select`, `plural`, or `gender`
+		*/
+		function decorateComplexMessage(decoration: vscode.TextEditorDecorationType, complexString: string, localOffset: number): void {
+			const firstComma = complexString.indexOf(',');
 			const start = globalOffset + localOffset + 2;
 			const end = globalOffset + localOffset + firstComma + 2;
-			console.log(localOffset + ': ' + part);
-			placeHoldersForKey.get(currentKey!)!.push(new Literal(part.substring(0, firstComma), start, end));
-			colorFromTo(start, end, argDecoration);
-			const innerVals = matchCurlyBrackets(part);
-			const secondComma = part.indexOf(',', firstComma + 1);
+			placeHoldersForKey.get(currentMessageKey!)!.push(new Literal(complexString.substring(0, firstComma), start, end));
+			decorateAt(start, end, argDecoration);
+			const bracketedValues = matchCurlyBrackets(complexString);
+			const secondComma = complexString.indexOf(',', firstComma + 1);
 			localOffset = localOffset + secondComma + 1;
-			for (const innerpart of innerVals) {
-				const innerString = '{' + innerpart + '}';
-				const indexOfInnerInOuter = value.indexOf(innerString, localOffset);
-				colorFromTo(globalOffset + localOffset + 2, globalOffset + indexOfInnerInOuter + 1, decoration);
-				localOffset = indexOfInnerInOuter + innerString.length;
+			for (const part of bracketedValues) {
+				const partWithBrackets = '{' + part + '}';
+				const indexOfPartInMessage = messageString.indexOf(partWithBrackets, localOffset);
+				decorateAt(globalOffset + localOffset + 2, globalOffset + indexOfPartInMessage + 1, decoration);
+				localOffset = indexOfPartInMessage + partWithBrackets.length;
 
-				colorPart(innerString, globalOffset + indexOfInnerInOuter, colorMap, editor, false);
+				decorateMessage(partWithBrackets, globalOffset + indexOfPartInMessage, colorMap, editor, false);
 			}
-			return localOffset;
 		}
 	}
 
-	function colorFromTo(start: number, end: number, decoration: vscode.TextEditorDecorationType) {
+	function decorateAt(start: number, end: number, decoration: vscode.TextEditorDecorationType): void {
 		const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
-		colorMap.set(decoration, [...(colorMap.get(decoration) ?? []), range]);
+		decorationsMap.get(decoration)!.push(range);
 	}
 
 }
