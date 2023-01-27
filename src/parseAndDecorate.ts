@@ -39,7 +39,7 @@ export const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	}
 });
 
-const selectRegex = /^([^\{\}]+\s*,\s*(?:select|gender)\s*,\s*(?:[^\{\}]*\w+\{.*\})*)$/;
+const selectRegex = /^([^\{\}]+\s*,\s*(?:select|gender)\s*,\s*(?:[^\{\}]*\{.*\})*)$/;
 const pluralRegex = /^[^\{\}]+\s*,\s*plural\s*,\s*(?:offset:\d+)?\s*(?:[^\{\} ]*?\s*\{.*\})$/;
 const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
