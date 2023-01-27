@@ -1,5 +1,6 @@
 {
   "name": "arb-editor",
+  "publisher": "Google",
   "displayName": "ARB Editor",
   "description": "Editor for Application Resource Bundle files, used for localization.",
   "version": "0.0.1",
