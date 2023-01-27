@@ -14,7 +14,7 @@
 import * as assert from 'assert';
 import path = require('path');
 import { TextEncoder } from 'util';
-
+import { EOL } from 'os';
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from 'vscode';
@@ -29,11 +29,15 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 suite('Extension Test Suite', async () => {
 	test("should annotate function with parameters", async () => {
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
-		const goldenEditor = await getEditor('testarb.annotated');
-		assert.equal(contentWithAnnotations, goldenEditor.document.getText());
+		if (process.env.UPDATE_GOLDENS) {
+			console.warn('Updating golden test.');
 
-		// Uncomment this line to regenerate the golden test file
-		// await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
+			//Run `UPDATE_GOLDENS=1 npm test` to regenerate the golden test
+			await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
+		} else {
+			const goldenEditor = await getEditor('testarb.annotated');
+			assert.equal(contentWithAnnotations, goldenEditor.document.getText());
+		}
 	});
 });
 
@@ -72,14 +76,14 @@ async function buildContentWithAnnotations(filename: string) {
 			annotationsForLine.set(lineNumber, [...(annotationsForLine.get(lineNumber) ?? []), annotation]);
 		}
 	}
-	const lines = content.split('\n');
+	const lines = content.split(EOL);
 	const numLines = lines.length;
 	for (let index = numLines; index > 0; index--) {
 		if (annotationsForLine.has(index)) {
 			lines.splice(index + 1, 0, ...annotationsForLine.get(index)!);
 		}
 	}
-	const contentWithAnnotations = lines.join('\n');
+	const contentWithAnnotations = lines.join(EOL);
 	return contentWithAnnotations;
 }
 
