@@ -1,7 +1,9 @@
 on:
+  # Run on PRs and pushes to the default branch.
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
