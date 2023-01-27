@@ -14,7 +14,7 @@ import { JSONPath, visit } from 'jsonc-parser';
 import * as vscode from 'vscode';
 import XRegExp = require('xregexp');
 
-export const argDecoration = vscode.window.createTextEditorDecorationType({
+export const placeholderDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
 		color: '#ff6f00'
 	},
@@ -39,10 +39,10 @@ export const pluralDecoration = vscode.window.createTextEditorDecorationType({
 	}
 });
 
-const selectRegex = /^(\w+\s*,\s*(?:select|gender)\s*,(?:\s*\w+\{.*\})*)$/;
-const pluralRegex = /^(\w+\s*,\s*plural\s*,(?:\s*\w+\{.*\})*)$/;
-const argNameRegex = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
-const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/;
+const selectRegex = /^([^\{\}]+\s*,\s*(?:select|gender)\s*,(?:[^\{\}]*\w+\{.*\})*)$/;
+const pluralRegex = /^[^\{\}]+\s*,\s*plural\s*,\s*(?:offset:\d+)?\s*(?:[^\{\} ]*?\s*\{.*\})$/;
+const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
+const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
 
 class Literal {
 	constructor(
@@ -65,7 +65,7 @@ export class DecoratorAndParser {
 	parseAndDecorate(editor: vscode.TextEditor): { diagnostics: vscode.Diagnostic[]; decorations: Map<vscode.TextEditorDecorationType, vscode.Range[]>; } | null {
 		// Prefill decorations map to avoid having old decoration hanging around
 		let decorationsMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
-			[argDecoration, []],
+			[placeholderDecoration, []],
 			[selectDecoration, []],
 			[pluralDecoration, []],
 		]);
@@ -106,7 +106,7 @@ export class DecoratorAndParser {
 						showErrorAt(offset + 1, offset + property.length + 1, `Placeholder "${property}" is being declared, but not used in message.`, vscode.DiagnosticSeverity.Warning);
 					}
 					definedPlaceholders.push(property);
-					decorateAt(offset + 1, offset + property.length + 1, argDecoration);
+					decorateAt(offset + 1, offset + property.length + 1, placeholderDecoration);
 				}
 				if (nestingLevel === 1) {
 					const isMetadata = property.startsWith('@');
@@ -167,12 +167,7 @@ export class DecoratorAndParser {
 					const partOffset = globalOffset + localOffset + 2;
 					const partOffsetEnd = globalOffset + localOffset + part.length + 2;
 					if (isOuter) {
-						if (argNameRegex.exec(part) !== null) {
-							placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
-							decorateAt(partOffset, partOffsetEnd, argDecoration);
-						} else {
-							showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid argument name.`, vscode.DiagnosticSeverity.Error);
-						}
+						validateAndAddPlaceholder(part, partOffset, partOffsetEnd);
 					} else {
 						decorateMessage(part, partOffset - 1, colorMap, editor, true);
 					}
@@ -186,8 +181,7 @@ export class DecoratorAndParser {
 				const firstComma = complexString.indexOf(',');
 				const start = globalOffset + localOffset + 2;
 				const end = globalOffset + localOffset + firstComma + 2;
-				placeHoldersForKey.get(messageKey!)!.push(new Literal(complexString.substring(0, firstComma), start, end));
-				decorateAt(start, end, argDecoration);
+				validateAndAddPlaceholder(complexString.substring(0, firstComma), start, end);
 				const bracketedValues = matchCurlyBrackets(complexString);
 				const secondComma = complexString.indexOf(',', firstComma + 1);
 				localOffset = localOffset + secondComma + 1;
@@ -199,6 +193,15 @@ export class DecoratorAndParser {
 
 					decorateMessage(partWithBrackets, globalOffset + indexOfPartInMessage, colorMap, editor, false);
 				}
+			}
+		}
+
+		function validateAndAddPlaceholder(part: string, partOffset: number, partOffsetEnd: number) {
+			if (placeholderNameRegex.exec(part) !== null) {
+				placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
+				decorateAt(partOffset, partOffsetEnd, placeholderDecoration);
+			} else {
+				showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid placeholder name.`, vscode.DiagnosticSeverity.Error);
 			}
 		}
 
