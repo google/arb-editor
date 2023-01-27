@@ -3,7 +3,7 @@
 All notable changes to the "arbeditor" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-## [Unreleased] 
+## [0.0.2] 
 
 - Create CI workflow
 - Fix newline character to run tests cross-platform
