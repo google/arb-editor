@@ -29,11 +29,15 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 suite('Extension Test Suite', async () => {
 	test("should annotate function with parameters", async () => {
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
-		const goldenEditor = await getEditor('testarb.annotated');
-		assert.equal(contentWithAnnotations, goldenEditor.document.getText());
+		if (process.env.UPDATE_GOLDENS) {
+			console.warn('Updating golden test.');
 
-		// Uncomment this line to regenerate the golden test file
-		// await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
+			//Run `UPDATE_GOLDENS=1 npm test` to regenerate the golden test
+			await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
+		} else {
+			const goldenEditor = await getEditor('testarb.annotated');
+			assert.equal(contentWithAnnotations, goldenEditor.document.getText());
+		}
 	});
 });
 
