@@ -124,7 +124,7 @@ export class DecoratorAndParser {
 							messageKey = property;
 							placeHoldersForKey.set(messageKey, []);
 						} else {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Key "${property}" is not a valid message key.`, vscode.DiagnosticSeverity.Error);
+							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Key "${property}" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores.`, vscode.DiagnosticSeverity.Error);
 						}
 					}
 				}
@@ -201,7 +201,7 @@ export class DecoratorAndParser {
 				placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
 				decorateAt(partOffset, partOffsetEnd, placeholderDecoration);
 			} else {
-				showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid placeholder name.`, vscode.DiagnosticSeverity.Error);
+				showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
 			}
 		}
 
