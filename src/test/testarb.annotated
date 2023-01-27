@@ -2,42 +2,43 @@
     "@@locale": "en",
     "appName": "Demo app",
     "pageLog{inUsername": "Your username",
-     ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key."
+     ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores."
     "@pageLoginUsername": {},
      ^^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "pageLoginUsername"."
     "pageLoginPassword": "Your password",
     "@pageLoginPassword": {},
     "pageHomeTitle": "Welcome {firstName}",
-                               ^^^^^^^^^[decoration]argument
+                               ^^^^^^^^^[decoration]placeholder
     "@pageHomeTitle": {
         "description": "Welcome message on the Home screen",
         "placeholders": {
             "firstName": {}
-             ^^^^^^^^^[decoration]argument
+             ^^^^^^^^^[decoration]placeholder
         }
     },
-    "pageHomeInboxCount": "{count, plural, zero{I have {vehicleType, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
-                            ^^^^^[decoration]argument
-                                                        ^^^^^^^^^^^[decoration]argument
-                                                                                                                                                                                                                       ^^^^^[decoration]argument
-                                                                            ^^^^^[decoration]select
-                                                                                         ^^^^^^^^[decoration]select
-                                                                                                                        ^^^^[decoration]select
-                                                                                                                                             ^^^^[decoration]select
+    "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
+                            ^^^^^[decoration]placeholder
+                                                                                                                                                                                                                         ^^^^^[decoration]placeholder
+                                                                              ^^^^^[decoration]select
+                                                                                           ^^^^^^^^[decoration]select
+                                                                                                                          ^^^^[decoration]select
+                                                                                                                                               ^^^^[decoration]select
                                           ^^^^^[decoration]plural
-                                                                                                                                                                           ^^^[decoration]plural
-                                                                                                                                                                                                       ^^^^^[decoration]plural
+                                                                                                                                                                             ^^^[decoration]plural
+                                                                                                                                                                                                         ^^^^^[decoration]plural
+                                                        ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
     "@pageHomeInboxCount": {
         "description": "New messages count on the Home screen",
         "placeholders": {
             "count": {},
-             ^^^^^[decoration]argument
+             ^^^^^[decoration]placeholder
             "vehicleType": {}
-             ^^^^^^^^^^^[decoration]argument
+             ^^^^^^^^^^^[decoration]placeholder
+             ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" is being declared, but not used in message."
         }
     },
     "pageHomeBirthday": "Today is {sex, select, male{his b'{irthday} female{her birthday} other{their birthday}}.",
-                                   ^^^[decoration]argument
+                                   ^^^[decoration]placeholder
                                                ^^^^^[decoration]select
                                                                      ^^^^^^[decoration]select
                                                                                           ^^^^^[decoration]select
@@ -45,7 +46,7 @@
         "description": "Birthday message on the Home screen",
         "placeholders": {
             "sex": {}
-             ^^^[decoration]argument
+             ^^^[decoration]placeholder
         }
     },
     "commonVehicleType": "{vehicleType, s{elect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
@@ -55,18 +56,18 @@
         "description": "Vehicle type",
         "placeholders": {
             "vehicleType": {}
-             ^^^^^^^^^^^[decoration]argument
+             ^^^^^^^^^^^[decoration]placeholder
              ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" is being declared, but not used in message."
         }
     },
     "pageHomeBalance": "Your balance is {am[ount} on {date2}",
-                                                      ^^^^^[decoration]argument
-                                         ^^^^^^^[Error]:""am[ount" is not a valid argument name."
+                                                      ^^^^^[decoration]placeholder
+                                         ^^^^^^^[Error]:""am[ount" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
                                                       ^^^^^[Warning]:"Placeholder "date2" not defined in the message metadata."
     "@pageHomeBalance": {
         "placeholders": {
             "amount": {
-             ^^^^^^[decoration]argument
+             ^^^^^^[decoration]placeholder
              ^^^^^^[Warning]:"Placeholder "amount" is being declared, but not used in message."
                 "type": "double",
                 "format": "currency",
@@ -80,7 +81,7 @@
                 }
             },
             "date": {
-             ^^^^[decoration]argument
+             ^^^^[decoration]placeholder
              ^^^^[Warning]:"Placeholder "date" is being declared, but not used in message."
                 "type": "DateTime",
                 "format": "yMd",
