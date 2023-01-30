@@ -19,6 +19,7 @@ import { EOL } from 'os';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, DecoratorAndParser } from '../../parseAndDecorate';
+import { Parser } from '../../messageParser';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 	[placeholderDecoration, '[decoration]placeholder'],
@@ -27,7 +28,7 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 ]);
 
 suite('Extension Test Suite', async () => {
-	test("should annotate function with parameters", async () => {
+	test("Decorate golden file.", async () => {
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
 		if (process.env.UPDATE_GOLDENS) {
 			console.warn('Updating golden test.');
@@ -39,6 +40,44 @@ suite('Extension Test Suite', async () => {
 			assert.equal(contentWithAnnotations, goldenEditor.document.getText());
 		}
 	});
+
+	test("A rough parser test, as the real test will be done by the golden.", async () => {
+		const document = `{
+			"@@locale": "en",
+			"appName": "Demo app",
+			"pageLog{inUsername": "Your username",
+			"@pageLoginUsername": {},
+			"pageLoginPassword": "Your password",
+			"@pageLoginPassword": {},
+			"pageHomeTitle": "Welcome {firstName} to {test}!",
+			"@pageHomeTitle": {
+				"description": "Welcome message on the Home screen",
+				"placeholders": {
+					"firstName": {}
+				}
+			},
+			"pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
+			"@pageHomeInboxCount": {
+				"description": "New messages count on the Home screen",
+				"placeholders": {
+					"count": {},
+					"vehicleType": {}
+				}
+			},
+			"commonVehicleType": "{vehicleType, select, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+			"@commonVeshicleType": {
+				"description": "Vehicle type",
+				"placeholders": {
+					"vehicleType": {}
+				}
+			}
+		}`;
+		const [messages, errors] = new Parser().parse(document);
+		assert.equal(errors.length, 0);
+		assert.equal(messages.messages.size, 6);
+		assert.equal(messages.metadata.size, 5);
+	});
+
 });
 
 

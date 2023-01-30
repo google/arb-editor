@@ -13,6 +13,7 @@ import path = require('path');
 import { JSONPath, visit } from 'jsonc-parser';
 import * as vscode from 'vscode';
 import XRegExp = require('xregexp');
+import { CombinedMessage, ComplexMessage, Literal, Message, Metadata, Parser, Placeholder } from './messageParser';
 
 export const placeholderDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
@@ -44,17 +45,6 @@ const pluralRegex = /^[^\{\}]+\s*,\s*plural\s*,\s*(?:offset:\d+)?\s*(?:[^\{\} ]*
 const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
 
-class Literal {
-	constructor(
-		public value: string,
-		public start: number,
-		public end: number
-	) { }
-
-	public toString = (): string => {
-		return `Literal(${this.value},${this.start},${this.end})`;
-	};
-}
 export class DecoratorAndParser {
 	diagnostics = vscode.languages.createDiagnosticCollection("arb");
 
@@ -71,137 +61,96 @@ export class DecoratorAndParser {
 		]);
 		let diagnosticsList: vscode.Diagnostic[] = [];
 
-		// Map of arguments for each message key
-		let placeHoldersForKey = new Map<String, Literal[]>();
-
 		// Only trigger on arb files
 		if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
 			return null;
 		}
-		let nestingLevel = 0;
-		let placeholderLevel: number | null;
-		let metadataLevel: number | null;
-		let messageKey: string | null;
-		let definedPlaceholders: string[] = [];
-		visit(editor.document.getText(), {
-			onLiteralValue: (value: string, offset: number) => {
-				if (nestingLevel === 1) {
-					try {
-						decorateMessage(value, offset, decorationsMap, editor, true);
-					} catch (error: any) {
-						if (String(error).startsWith('Error: Unbalanced ')) {//Very hacky, but better than not checking at all... The error has no special type, unfortunately.
-							showErrorAt(offset + 1, offset + value.length + 1, 'Unbalanced curly bracket found. Try escaping the bracket using a single quote \' .', vscode.DiagnosticSeverity.Error);
-						} else {
-							throw error;
-						}
-					}
-				}
-			},
-			onObjectBegin: (offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
-				nestingLevel++;
-			},
-			onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
-				if (placeholderLevel === nestingLevel - 1) {
-					if (!placeHoldersForKey.get(messageKey!)!.some((literal: Literal, index: number, array: Literal[]) => literal.value === property)) {
-						showErrorAt(offset + 1, offset + property.length + 1, `Placeholder "${property}" is being declared, but not used in message.`, vscode.DiagnosticSeverity.Warning);
-					}
-					definedPlaceholders.push(property);
-					decorateAt(offset + 1, offset + property.length + 1, placeholderDecoration);
-				}
-				if (nestingLevel === 1) {
-					const isMetadata = property.startsWith('@');
-					const propertyOffsetEnd = offset + property.length + 1;
-					const propertyOffsetStart = offset + 1;
-					if (isMetadata) {
-						const isGlobalMetadata = property.startsWith('@@');
-						const messageKeyExists = placeHoldersForKey.has(property.substring(1));
-						if (!isGlobalMetadata && !messageKeyExists) {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Metadata for an undefined key. Add a message key with the name "${property.substring(1)}".`, vscode.DiagnosticSeverity.Error);
-						}
-						metadataLevel = nestingLevel;
-					} else {
-						if (keyNameRegex.exec(property) !== null) {
-							messageKey = property;
-							placeHoldersForKey.set(messageKey, []);
-						} else {
-							showErrorAt(propertyOffsetStart, propertyOffsetEnd, `Key "${property}" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores.`, vscode.DiagnosticSeverity.Error);
-						}
-					}
-				}
-				if (metadataLevel === nestingLevel - 1 && property === 'placeholders') {
-					placeholderLevel = nestingLevel;
-				}
-			},
-			onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
-				nestingLevel--;
-				if (placeholderLevel !== null && nestingLevel < placeholderLevel) {
-					placeholderLevel = null;
-					for (const placeholder of placeHoldersForKey.get(messageKey!)!) {
-						if (!definedPlaceholders.includes(placeholder.value)) {
-							showErrorAt(placeholder.start, placeholder.end, `Placeholder "${placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
-						}
-					}
-					definedPlaceholders = [];
-				}
-				if (metadataLevel !== null && nestingLevel < metadataLevel) {
-					metadataLevel = -1;
-				}
-			},
-		}, { disallowComments: true });
 
+		const [messageList, errors] = new Parser().parse(editor.document.getText())!;
+
+		for (const error of errors) {
+			showErrorAt(error.start, error.end, error.value, vscode.DiagnosticSeverity.Error);
+		}
+
+		for (const [key, message] of messageList?.messages) {
+			const hasMetadata = Array.from(messageList.metadata.keys()).filter((literal) => literal.value === ('@' + key.value));
+			let metadata: Metadata | null = null;
+			if (hasMetadata.length > 0) {
+				metadata = messageList.metadata.get(hasMetadata[0])!;
+			}
+
+			decorateKey(key, metadata, messageList.isReference);
+			decorateMessage(message, metadata);
+			decorateMetadata(message, metadata);
+		}
+
+		for (const [key, metadata] of messageList?.metadata) {
+			const hasMessage = Array.from(messageList.messages.keys()).filter((literal) => '@' + literal.value === key.value);
+			if (hasMessage.length === 0) {
+				showErrorAt(key.start, key.end, `Metadata for an undefined key. Add a message key with the name "${key.value.substring(1)}".`, vscode.DiagnosticSeverity.Error);
+			}
+		}
 
 		this.diagnostics.set(editor.document.uri, diagnosticsList);
 		decorationsMap.forEach((value: vscode.Range[], key: vscode.TextEditorDecorationType) => {
 			editor.setDecorations(key, value);
 		});
 
-		function decorateMessage(messageString: string, globalOffset: number, colorMap: Map<vscode.TextEditorDecorationType, vscode.Range[]>, editor: vscode.TextEditor, isOuter: boolean): void {
-			const vals = matchCurlyBrackets(messageString);
-			for (const part of vals) {
-				let localOffset = messageString.indexOf('{' + part + '}');
-				if (selectRegex.exec(part) !== null) {
-					decorateComplexMessage(selectDecoration, part, localOffset);
-				} else if (pluralRegex.exec(part) !== null) {
-					decorateComplexMessage(pluralDecoration, part, localOffset);
-				} else {
-					const partOffset = globalOffset + localOffset + 2;
-					const partOffsetEnd = globalOffset + localOffset + part.length + 2;
-					if (isOuter) {
-						validateAndAddPlaceholder(part, partOffset, partOffsetEnd);
-					} else {
-						decorateMessage(part, partOffset - 1, colorMap, editor, true);
-					}
-				}
-			}
-
-			/**
-			* Decorate ICU Message of type `select`, `plural`, or `gender`
-			*/
-			function decorateComplexMessage(decoration: vscode.TextEditorDecorationType, complexString: string, localOffset: number): void {
-				const firstComma = complexString.indexOf(',');
-				const start = globalOffset + localOffset + 2;
-				const end = globalOffset + localOffset + firstComma + 2;
-				validateAndAddPlaceholder(complexString.substring(0, firstComma), start, end);
-				const bracketedValues = matchCurlyBrackets(complexString);
-				const secondComma = complexString.indexOf(',', firstComma + 1);
-				localOffset = localOffset + secondComma + 1;
-				for (const part of bracketedValues) {
-					const partWithBrackets = '{' + part + '}';
-					const indexOfPartInMessage = messageString.indexOf(partWithBrackets, localOffset);
-					decorateAt(globalOffset + localOffset + 2, globalOffset + indexOfPartInMessage + 1, decoration);
-					localOffset = indexOfPartInMessage + partWithBrackets.length;
-
-					decorateMessage(partWithBrackets, globalOffset + indexOfPartInMessage, colorMap, editor, false);
+		function decorateKey(key: Literal, metadata: Metadata | null, isReference: boolean) {
+			if (keyNameRegex.exec(key.value) === null) {
+				showErrorAt(key.start, key.end, `Key "${key.value}" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores.`, vscode.DiagnosticSeverity.Error);
+			} else {
+				if (metadata === null && isReference) {
+					showErrorAt(key.start, key.end, `The message with key "${key.value}" does not have metadata defined.`, vscode.DiagnosticSeverity.Information);
 				}
 			}
 		}
 
-		function validateAndAddPlaceholder(part: string, partOffset: number, partOffsetEnd: number) {
-			if (placeholderNameRegex.exec(part) !== null) {
-				placeHoldersForKey.get(messageKey!)!.push(new Literal(part, partOffset, partOffsetEnd));
-				decorateAt(partOffset, partOffsetEnd, placeholderDecoration);
-			} else {
-				showErrorAt(partOffset, partOffsetEnd, `"${part}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
+		function decorateMessage(message: Message, metadata: Metadata | null) {
+			if (message instanceof CombinedMessage) {
+				for (const submessage of message.parts) {
+					decorateMessage(submessage, metadata);
+				}
+			} else if (message instanceof Placeholder) {
+				decorateAt(message.start, message.end, placeholderDecoration);
+				if (placeholderNameRegex.exec(message.placeholder.value) !== null) {
+					if (!metadata?.placeholders.some((p) => p.value === message.placeholder.value)) {
+						showErrorAt(message.placeholder.start, message.placeholder.end, `Placeholder "${message.placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
+					}
+				} else {
+					showErrorAt(message.placeholder.start, message.placeholder.end, `"${message.placeholder.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
+				}
+			} else if (message instanceof ComplexMessage) {
+				decorateAt(message.argument.start, message.argument.end, placeholderDecoration);
+				if (placeholderNameRegex.exec(message.argument.value) === null) {
+					showErrorAt(message.argument.start, message.argument.end, `"${message.argument.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
+				}
+
+				if (!Array.from(message.messages.keys()).some((p) => p.value.trim() === 'other')) {
+					showErrorAt(message.start + 1, message.end + 1, `The ICU message format requires a 'other' argument.`, vscode.DiagnosticSeverity.Error);
+				}
+
+				if (!['plural', 'select', 'gender'].includes(message.complexType.value.trim())) {
+					showErrorAt(message.complexType.start, message.complexType.end, `Unknown ICU messagetype "${message.complexType.value.trim()}"`, vscode.DiagnosticSeverity.Error);
+				} else {
+					let complexDecoration = selectDecoration;
+					if (message.complexType.value.includes('plural')) {
+						complexDecoration = pluralDecoration;
+					}
+					for (const [key, submessage] of message.messages.entries()) {
+						decorateAt(key.start, key.end, complexDecoration);
+						decorateMessage(submessage, metadata);
+					}
+				}
+			}
+		}
+
+		function decorateMetadata(message: Message, metadata: Metadata | null) {
+			const placeholders = message.getPlaceholders();
+			for (const placeholder of metadata?.placeholders ?? []) {
+				if (!placeholders.some((p) => p.value === placeholder.value)) {
+					showErrorAt(placeholder.start, placeholder.end, `The placeholder is defined in the metadata, but not in the message.`, vscode.DiagnosticSeverity.Warning);
+				}
 			}
 		}
 
@@ -217,10 +166,4 @@ export class DecoratorAndParser {
 
 		return { diagnostics: diagnosticsList, decorations: decorationsMap };
 	}
-}
-function matchCurlyBrackets(value: string) {
-	return XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
-		escapeChar: '\'',
-		unbalanced: 'error'
-	});
 }
