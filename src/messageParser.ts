@@ -170,6 +170,14 @@ export class Literal {
 	public toString = (): string => {
 		return `Literal(${this.value},${this.start},${this.end})`;
 	};
+
+	whereIs(offset: number): Literal | Message | null {
+		if (this.start < offset && offset < this.end) {
+			return this;
+		} else {
+			return null;
+		}
+	}
 }
 
 export class MessageList {
@@ -181,6 +189,15 @@ export class MessageList {
 
 	getPlaceholders(): Literal[] {
 		return Array.from(this.messages.values()).flatMap((message) => message.getPlaceholders());
+	}
+
+	whereIs(offset: number): Message | Literal | Metadata | null {
+		const partsContaining = Array.from(this.messages.entries()).filter(([literal, message]) => literal.whereIs(offset) !== null || message.whereIs(offset) !== null);
+		if (partsContaining.length > 0) {
+			return partsContaining[0][0].whereIs(offset) ?? partsContaining[0][1].whereIs(offset);
+		} else {
+			return null;
+		}
 	}
 }
 
@@ -197,6 +214,8 @@ export abstract class Message {
 	) { }
 
 	abstract getPlaceholders(): Literal[];
+
+	abstract whereIs(offset: number): Message | Literal | null;
 }
 
 export class CombinedMessage extends Message {
@@ -211,6 +230,18 @@ export class CombinedMessage extends Message {
 	getPlaceholders(): Literal[] {
 		return this.parts.flatMap((value) => value.getPlaceholders());
 	}
+
+	whereIs(offset: number): Literal | Message | null {
+		if (this.start < offset && offset < this.end) {
+			const partsContaining = this.parts.filter((part) => part.whereIs(offset) !== null);
+			if (partsContaining.length > 0) {
+				return partsContaining[0].whereIs(offset);
+			} else {
+				return null;
+			}
+		}
+		return null;
+	}
 }
 
 export class StringMessage extends Message {
@@ -222,6 +253,14 @@ export class StringMessage extends Message {
 
 	getPlaceholders(): Literal[] {
 		return [];
+	}
+
+	whereIs(offset: number): Literal | Message | null {
+		if (this.start < offset && offset < this.end) {
+			return this;
+		} else {
+			return null;
+		}
 	}
 }
 
@@ -239,6 +278,18 @@ export class ComplexMessage extends Message {
 	getPlaceholders(): Literal[] {
 		return [this.argument, ...Array.from(this.messages.values()).flatMap((value) => value.getPlaceholders())];
 	}
+
+	whereIs(offset: number): Literal | Message | null {
+		if (this.start < offset && offset < this.end) {
+			const partsContaining = Array.from(this.messages.entries()).filter(([literal, message]) => literal.whereIs(offset) !== null || message.whereIs(offset) !== null);
+			if (partsContaining.length > 0) {
+				return partsContaining[0][0].whereIs(offset) ?? partsContaining[0][1].whereIs(offset);
+			} else {
+				return null;
+			}
+		}
+		return null;
+	}
 }
 
 export class Placeholder extends Message {
@@ -250,5 +301,13 @@ export class Placeholder extends Message {
 
 	getPlaceholders(): Literal[] {
 		return [this.placeholder];
+	}
+
+	whereIs(offset: number): Literal | Message | null {
+		if (this.start < offset && offset < this.end) {
+			return this;
+		} else {
+			return null;
+		}
 	}
 }

@@ -13,7 +13,7 @@ import path = require('path');
 import { JSONPath, visit } from 'jsonc-parser';
 import * as vscode from 'vscode';
 import XRegExp = require('xregexp');
-import { CombinedMessage, ComplexMessage, Literal, Message, Metadata, Parser, Placeholder } from './messageParser';
+import { CombinedMessage, ComplexMessage, Literal, Message, MessageList, Metadata, Parser, Placeholder } from './messageParser';
 
 export const placeholderDecoration = vscode.window.createTextEditorDecorationType({
 	light: {
@@ -45,14 +45,14 @@ const pluralRegex = /^[^\{\}]+\s*,\s*plural\s*,\s*(?:offset:\d+)?\s*(?:[^\{\} ]*
 const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
 
-export class DecoratorAndParser {
+export class Decorator {
 	diagnostics = vscode.languages.createDiagnosticCollection("arb");
 
 	constructor(context?: vscode.ExtensionContext) {
 		context?.subscriptions.push(this.diagnostics);
 	}
 
-	parseAndDecorate(editor: vscode.TextEditor): { diagnostics: vscode.Diagnostic[]; decorations: Map<vscode.TextEditorDecorationType, vscode.Range[]>; } | null {
+	decorate(editor: vscode.TextEditor, messageList: MessageList, errors: Literal[]): { diagnostics: vscode.Diagnostic[]; decorations: Map<vscode.TextEditorDecorationType, vscode.Range[]>; } | null {
 		// Prefill decorations map to avoid having old decoration hanging around
 		let decorationsMap = new Map<vscode.TextEditorDecorationType, vscode.Range[]>([
 			[placeholderDecoration, []],
@@ -60,13 +60,6 @@ export class DecoratorAndParser {
 			[pluralDecoration, []],
 		]);
 		let diagnosticsList: vscode.Diagnostic[] = [];
-
-		// Only trigger on arb files
-		if (!editor || !path.basename(editor.document.fileName).endsWith('.arb')) {
-			return null;
-		}
-
-		const [messageList, errors] = new Parser().parse(editor.document.getText())!;
 
 		for (const error of errors) {
 			showErrorAt(error.start, error.end, error.value, vscode.DiagnosticSeverity.Error);

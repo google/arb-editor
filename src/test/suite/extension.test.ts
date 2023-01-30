@@ -18,7 +18,7 @@ import { EOL } from 'os';
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from 'vscode';
-import { placeholderDecoration, selectDecoration, pluralDecoration, DecoratorAndParser } from '../../decorate';
+import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
 import { Parser } from '../../messageParser';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
@@ -90,7 +90,8 @@ async function regenerateGolden(contentWithAnnotations: string, goldenFilename: 
 
 async function buildContentWithAnnotations(filename: string) {
 	const editor = await getEditor(filename);
-	const decorations = new DecoratorAndParser().parseAndDecorate(editor);
+	const [messageList, errors] = new Parser().parse(editor.document.getText())!;
+	const decorations = new Decorator().decorate(editor, messageList, errors);
 	const content = editor.document.getText();
 	const annotationsForLine = new Map<number, string[]>();
 	for (const entry of decorations?.decorations.entries() ?? []) {

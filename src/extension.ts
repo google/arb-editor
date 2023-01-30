@@ -22,17 +22,28 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 
 import path = require('path');
 import * as vscode from 'vscode';
-import { DecoratorAndParser } from './decorate';
+import { Decorator as Decorator } from './decorate';
+import { Parser } from './messageParser';
 const snippetsJson = require("../snippets/snippets.json");
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-	const decoratorAndParser = new DecoratorAndParser(context);
+	const decorator = new Decorator(context);
+
+	// decorate the active editor now
+	const activeTextEditor = vscode.window.activeTextEditor;
+	
+	// Only trigger on arb files
+	if (!activeTextEditor || !path.basename(activeTextEditor.document.fileName).endsWith('.arb')) {
+		return;
+	}
+
+	const [messageList, errors] = new Parser().parse(activeTextEditor.document.getText())!;
 
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {
-			return decoratorAndParser.parseAndDecorate(editor);
+			return decorator.decorate(editor, messageList, errors);
 		}
 	}, null, context.subscriptions));
 
@@ -44,7 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 			const activeTextEditor = vscode.window.activeTextEditor;
 			if (activeTextEditor !== undefined) {
-				pendingDecorations = setTimeout(() => decoratorAndParser.parseAndDecorate(activeTextEditor), 500);
+				pendingDecorations = setTimeout(() => decorator.decorate(activeTextEditor, messageList, errors), 500);
 			}
 		}
 	}, null, context.subscriptions));
@@ -60,11 +71,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		},
 	));
-
-	// decorate the active editor now
-	const activeTextEditor = vscode.window.activeTextEditor;
+	
 	if (activeTextEditor !== undefined) {
-		decoratorAndParser.parseAndDecorate(activeTextEditor);
+		decorator.decorate(activeTextEditor, messageList, errors);
 	}
 
 	// At extension startup
