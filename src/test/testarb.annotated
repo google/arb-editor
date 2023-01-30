@@ -1,5 +1,6 @@
 {
     "@@locale": "en",
+    "@@x-reference": false,
     "appName": "Demo app",
     "pageLog{inUsername": "Your username",
      ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores."
@@ -13,62 +14,56 @@
         "description": "Welcome message on the Home screen",
         "placeholders": {
             "firstName": {}
-             ^^^^^^^^^[decoration]placeholder
         }
     },
-    "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} oter{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
+    "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new message} other{You have {count} new messages}}",
                             ^^^^^[decoration]placeholder
-                                                                                                                                                                                                                         ^^^^^[decoration]placeholder
+                                                        ^^^^^^^^^^^^^[decoration]placeholder
+                                                                                                                                                                                                                          ^^^^^[decoration]placeholder
                                                                               ^^^^^[decoration]select
-                                                                                           ^^^^^^^^[decoration]select
-                                                                                                                          ^^^^[decoration]select
-                                                                                                                                               ^^^^[decoration]select
+                                                                                          ^^^^^^^^^[decoration]select
+                                                                                                                         ^^^^^[decoration]select
+                                                                                                                                              ^^^^^^[decoration]select
                                           ^^^^^[decoration]plural
-                                                                                                                                                                             ^^^[decoration]plural
-                                                                                                                                                                                                         ^^^^^[decoration]plural
+                                                                                                                                                                             ^^^^[decoration]plural
+                                                                                                                                                                                                         ^^^^^^[decoration]plural
                                                         ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
     "@pageHomeInboxCount": {
         "description": "New messages count on the Home screen",
         "placeholders": {
             "count": {},
-             ^^^^^[decoration]placeholder
             "vehicleType": {}
-             ^^^^^^^^^^^[decoration]placeholder
-             ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" is being declared, but not used in message."
+             ^^^^^^^^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
         }
     },
-    "pageHomeBirthday": "Today is {sex, select, male{his b'{irthday} female{her birthday} other{their birthday}}.",
-                                   ^^^[decoration]placeholder
-                                               ^^^^^[decoration]select
-                                                                     ^^^^^^[decoration]select
-                                                                                          ^^^^^[decoration]select
+    "pageHomeBirthday": "Today is {sex, sele{ct, male{his b'{irthday} female{her birthday} other{their birthday}}.",
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 9"
     "@pageHomeBirthday": {
+     ^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "pageHomeBirthday"."
         "description": "Birthday message on the Home screen",
         "placeholders": {
             "sex": {}
-             ^^^[decoration]placeholder
         }
     },
-    "commonVehicleType": "{vehicleType, s{elect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]:"Unbalanced curly bracket found. Try escaping the bracket using a single quote ' ."
+    "commonVehicleType": "{vehicleType, se?lect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+                           ^^^^^^^^^^^[decoration]placeholder
+                                       ^^^^^^^^[Error]:"Unknown ICU messagetype "se?lect""
     "@commonVeshicleType": {
      ^^^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "commonVeshicleType"."
         "description": "Vehicle type",
         "placeholders": {
             "vehicleType": {}
-             ^^^^^^^^^^^[decoration]placeholder
-             ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" is being declared, but not used in message."
         }
     },
     "pageHomeBalance": "Your balance is {am[ount} on {date2}",
+                                         ^^^^^^^[decoration]placeholder
                                                       ^^^^^[decoration]placeholder
                                          ^^^^^^^[Error]:""am[ount" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
                                                       ^^^^^[Warning]:"Placeholder "date2" not defined in the message metadata."
     "@pageHomeBalance": {
         "placeholders": {
             "amount": {
-             ^^^^^^[decoration]placeholder
-             ^^^^^^[Warning]:"Placeholder "amount" is being declared, but not used in message."
+             ^^^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
                 "type": "double",
                 "format": "currency",
                 "example": "$1000.00",
@@ -81,8 +76,7 @@
                 }
             },
             "date": {
-             ^^^^[decoration]placeholder
-             ^^^^[Warning]:"Placeholder "date" is being declared, but not used in message."
+             ^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
                 "type": "DateTime",
                 "format": "yMd",
                 "example": "11/10/2021",
