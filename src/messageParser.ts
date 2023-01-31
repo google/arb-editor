@@ -140,7 +140,7 @@ export class Parser {
 					if (innerPart.name === 'content') {
 						end = innerPart.start - 1;
 						var submessagekey = new Literal(part.value.substring(start, end), globalOffset + part.start + start + 1, globalOffset + part.start + end + 1);
-						var message = parseMessage(innerPart.value, globalOffset + innerPart.start + 1, false);
+						var message = parseMessage(innerPart.value, globalOffset + part.start + innerPart.start, false);
 						submessages.set(submessagekey, message);
 						start = innerPart.end + 1;
 					}
@@ -191,7 +191,7 @@ export class MessageList {
 		return Array.from(this.messages.values()).flatMap((message) => message.getPlaceholders());
 	}
 
-	whereIs(offset: number): Message | Literal | Metadata | null {
+	getMessageAt(offset: number): Message | Literal | Metadata | null {
 		const partsContaining = Array.from(this.messages.entries()).filter(([literal, message]) => literal.whereIs(offset) !== null || message.whereIs(offset) !== null);
 		if (partsContaining.length > 0) {
 			return partsContaining[0][0].whereIs(offset) ?? partsContaining[0][1].whereIs(offset);

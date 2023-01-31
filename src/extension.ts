@@ -72,8 +72,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		{ language: 'json', pattern: `**/*.arb` },
 		{
 			provideCompletionItems(document, position, token, context) {
-				const messageTypeAtCursor = messageList.whereIs(document.offsetAt(position));
-				console.log(messageTypeAtCursor);
+				const messageTypeAtCursor = messageList.getMessageAt(document.offsetAt(position));
 
 				if (messageTypeAtCursor instanceof StringMessage) {
 					return completionsStringInline;
