@@ -35,7 +35,7 @@
             "vehicleType": {}
         }
     },
-    "pageHomeBalance": "Your balance is {am[ount} on {date2}",
+    "pageHomeBalance": "Your balance {arg, select, other{arg {test}} case{message}} at {am[ount} on {date2}",
     "@pageHomeBalance": {
         "placeholders": {
             "amount": {

@@ -105,15 +105,10 @@ export class Decorator {
 					decorateMessage(submessage, metadata);
 				}
 			} else if (message instanceof Placeholder) {
-				decorateAt(message.start, message.end, placeholderDecoration);
-				if (placeholderNameRegex.exec(message.placeholder.value) !== null) {
-					if (!metadata?.placeholders.some((p) => p.value === message.placeholder.value)) {
-						showErrorAt(message.placeholder.start, message.placeholder.end, `Placeholder "${message.placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
-					}
-				} else {
-					showErrorAt(message.placeholder.start, message.placeholder.end, `"${message.placeholder.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
-				}
+				decorateAndValidatePlaceholder(message.placeholder, metadata);
 			} else if (message instanceof ComplexMessage) {
+
+				decorateAndValidatePlaceholder(message.argument, metadata);
 				decorateAt(message.argument.start, message.argument.end, placeholderDecoration);
 				if (placeholderNameRegex.exec(message.argument.value) === null) {
 					showErrorAt(message.argument.start, message.argument.end, `"${message.argument.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
@@ -135,6 +130,17 @@ export class Decorator {
 						decorateMessage(submessage, metadata);
 					}
 				}
+			}
+		}
+
+		function decorateAndValidatePlaceholder(placeholder: Literal, metadata: Metadata | null) {
+			decorateAt(placeholder.start, placeholder.end, placeholderDecoration);
+			if (placeholderNameRegex.exec(placeholder.value) !== null) {
+				if (!metadata?.placeholders.some((p) => p.value === placeholder.value)) {
+					showErrorAt(placeholder.start, placeholder.end, `Placeholder "${placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
+				}
+			} else {
+				showErrorAt(placeholder.start, placeholder.end, `"${placeholder.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
 			}
 		}
 
