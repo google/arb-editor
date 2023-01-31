@@ -1,0 +1,16 @@
+{
+    "pluralInline": {
+        "prefix": "plural",
+        "body": [
+            "{${1:count}, plural, other{${2:othermessage}} zero{${3:zeromessage}} one{${4:onemessage}} two{${5:twomessage}} few{${6:fewmessage}} many{${7:manymessage}}}"
+        ],
+        "description": "ICU Plural Message"
+    },
+    "selectmessage": {
+        "prefix": "select",
+        "body": [
+            "{${1:arg}, select, other{${2:othermessage}} ${3:case}{${4:message}}}"
+        ],
+        "description": "ICU Select Message"
+    }
+}

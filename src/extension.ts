@@ -22,17 +22,33 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 
 import path = require('path');
 import * as vscode from 'vscode';
-import { DecoratorAndParser } from './parseAndDecorate';
+import { Decorator as Decorator } from './decorate';
+import { Diagnostics } from './diagnose';
+import { Parser, StringMessage } from './messageParser';
 const snippetsJson = require("../snippets/snippets.json");
+const snippetsInlineJson = require("../snippets/snippets_inline.json");
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-	const decoratorAndParser = new DecoratorAndParser(context);
+	const decorator = new Decorator();
+	const diagnostics = new Diagnostics(context);
+	const parser = new Parser();
+
+	// decorate the active editor now
+	const activeTextEditor = vscode.window.activeTextEditor;
+
+	// Only trigger on arb files
+	if (!activeTextEditor || !path.basename(activeTextEditor.document.fileName).endsWith('.arb')) {
+		return;
+	}
+
+	let [messageList, errors] = parser.parse(activeTextEditor.document.getText())!;
 
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {
-			return decoratorAndParser.parseAndDecorate(editor);
+			decorator.decorate(editor, messageList);
+			diagnostics.diagnose(editor, messageList, errors);
 		}
 	}, null, context.subscriptions));
 
@@ -44,33 +60,43 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 			const activeTextEditor = vscode.window.activeTextEditor;
 			if (activeTextEditor !== undefined) {
-				pendingDecorations = setTimeout(() => decoratorAndParser.parseAndDecorate(activeTextEditor), 500);
+				pendingDecorations = setTimeout(() => {
+					[messageList, errors] = parser.parse(activeTextEditor.document.getText())!;
+					decorator.decorate(activeTextEditor, messageList);
+					diagnostics.diagnose(activeTextEditor, messageList, errors);
+				}, 500);
 			}
 		}
 	}, null, context.subscriptions));
 
 	// Make the snippets available in arb files
-	const completions = getSnippets();
+	const completions = getSnippets(snippetsJson);
+	const completionsStringInline = getSnippets(snippetsInlineJson);
 	context.subscriptions.push(vscode.languages.registerCompletionItemProvider(
 		{ language: 'json', pattern: `**/*.arb` },
 		{
 			provideCompletionItems(document, position, token, context) {
-				//TODO(mosum):Integrate this with the parser, show relevant snippets at the right positions
-				return completions;
+				const messageTypeAtCursor = messageList.getMessageAt(document.offsetAt(position));
+
+				if (messageTypeAtCursor instanceof StringMessage) {
+					return completionsStringInline;
+				} else {
+					return completions;
+				}
+
 			}
 		},
 	));
 
-	// decorate the active editor now
-	const activeTextEditor = vscode.window.activeTextEditor;
 	if (activeTextEditor !== undefined) {
-		decoratorAndParser.parseAndDecorate(activeTextEditor);
+		decorator.decorate(activeTextEditor, messageList);
+		diagnostics.diagnose(activeTextEditor, messageList, errors);
 	}
 
 	// At extension startup
 }
 
-function getSnippets() {
+function getSnippets(snippetsJson: any): vscode.CompletionList {
 	const completions = new vscode.CompletionList();
 	const snippets = snippetsJson as { [key: string]: { prefix: string; description: string; body: string[]; }; };
 	for (const snippetType of Object.keys(snippets)) {
