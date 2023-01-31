@@ -20,6 +20,7 @@ import { EOL } from 'os';
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
 import { Parser } from '../../messageParser';
+import { Diagnostics } from '../../diagnose';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 	[placeholderDecoration, '[decoration]placeholder'],
@@ -91,10 +92,11 @@ async function regenerateGolden(contentWithAnnotations: string, goldenFilename: 
 async function buildContentWithAnnotations(filename: string) {
 	const editor = await getEditor(filename);
 	const [messageList, errors] = new Parser().parse(editor.document.getText())!;
-	const decorations = new Decorator().decorate(editor, messageList, errors);
+	const decorations = new Decorator().decorate(editor, messageList);
+	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
 	const content = editor.document.getText();
 	const annotationsForLine = new Map<number, string[]>();
-	for (const entry of decorations?.decorations.entries() ?? []) {
+	for (const entry of decorations.entries() ?? []) {
 		const decorationType = entry[0];
 		for (const range of entry[1]) {
 			for (let lineNumber = range.start.line; lineNumber <= range.end.line; lineNumber++) {
@@ -106,7 +108,7 @@ async function buildContentWithAnnotations(filename: string) {
 			}
 		}
 	}
-	for (const diagnostic of decorations?.diagnostics ?? []) {
+	for (const diagnostic of diagnostics ?? []) {
 		const range = diagnostic.range;
 		for (let lineNumber = range.start.line; lineNumber <= range.end.line; lineNumber++) {
 			const line = editor.document.lineAt(lineNumber);

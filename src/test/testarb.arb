@@ -28,7 +28,7 @@
             "sex": {}
         }
     },
-    "commonVehicleType": "{vehicleType, se?lect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+    "commonVehicleType": "{vehicleType, se?lect  , sedan  {Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
     "@commonVeshicleType": {
         "description": "Vehicle type",
         "placeholders": {

@@ -14,22 +14,21 @@
         "description": "Welcome message on the Home screen",
         "placeholders": {
             "firstName": {}
+             ^^^^^^^^^[decoration]placeholder
         }
     },
     "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",
                             ^^^^^[decoration]placeholder
-                            ^^^^^[decoration]placeholder
-                                                        ^^^^^^^^^^^^^[decoration]placeholder
                                                         ^^^^^^^^^^^^^[decoration]placeholder
                                                                                                                                                                                                   ^^^^^^[decoration]placeholder
                                                                                                                                                                                                                                    ^^^^^[decoration]placeholder
-                                                                              ^^^^^[decoration]select
-                                                                                          ^^^^^^^^^[decoration]select
-                                                                                                                         ^^^^^[decoration]select
-                                                                                                                                              ^^^^^^[decoration]select
-                                          ^^^^^[decoration]plural
-                                                                                                                                                                             ^^^^[decoration]plural
-                                                                                                                                                                                                                  ^^^^^^[decoration]plural
+                                                                               ^^^^[decoration]select
+                                                                                           ^^^^^^^^[decoration]select
+                                                                                                                          ^^^^[decoration]select
+                                                                                                                                               ^^^^^[decoration]select
+                                           ^^^^[decoration]plural
+                                                                                                                                                                              ^^^[decoration]plural
+                                                                                                                                                                                                                   ^^^^^[decoration]plural
                                                         ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
                                                         ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
                                                                                                                                                                                                   ^^^^^^[Warning]:"Placeholder "counts" not defined in the message metadata."
@@ -37,7 +36,9 @@
         "description": "New messages count on the Home screen",
         "placeholders": {
             "count": {},
+             ^^^^^[decoration]placeholder
             "vehicleType": {}
+             ^^^^^^^^^^^[decoration]placeholder
              ^^^^^^^^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
         }
     },
@@ -50,11 +51,14 @@
             "sex": {}
         }
     },
-    "commonVehicleType": "{vehicleType, se?lect, sedan{Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+    "commonVehicleType": "{vehicleType, se?lect  , sedan  {Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
                            ^^^^^^^^^^^[decoration]placeholder
-                           ^^^^^^^^^^^[decoration]placeholder
+                                                   ^^^^^[decoration]select
+                                                                  ^^^^^^^^^[decoration]select
+                                                                                                  ^^^^^[decoration]select
+                                                                                                                        ^^^^^[decoration]select
                            ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" not defined in the message metadata."
-                                       ^^^^^^^^[Error]:"Unknown ICU messagetype "se?lect""
+                                        ^^^^^^^[Error]:"Unknown ICU messagetype "se?lect""
     "@commonVeshicleType": {
      ^^^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "commonVeshicleType"."
         "description": "Vehicle type",
@@ -70,6 +74,7 @@
     "@pageHomeBalance": {
         "placeholders": {
             "amount": {
+             ^^^^^^[decoration]placeholder
              ^^^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
                 "type": "double",
                 "format": "currency",
@@ -83,6 +88,7 @@
                 }
             },
             "date": {
+             ^^^^[decoration]placeholder
              ^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
                 "type": "DateTime",
                 "format": "yMd",

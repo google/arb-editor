@@ -23,13 +23,15 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 import path = require('path');
 import * as vscode from 'vscode';
 import { Decorator as Decorator } from './decorate';
+import { Diagnostics } from './diagnose';
 import { Parser, StringMessage } from './messageParser';
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
-	const decorator = new Decorator(context);
+	const decorator = new Decorator();
+	const diagnostics = new Diagnostics(context);
 	const parser = new Parser();
 
 	// decorate the active editor now
@@ -45,7 +47,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor !== undefined) {
-			return decorator.decorate(editor, messageList, errors);
+			decorator.decorate(editor, messageList);
+			diagnostics.diagnose(editor, messageList, errors);
 		}
 	}, null, context.subscriptions));
 
@@ -59,7 +62,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (activeTextEditor !== undefined) {
 				pendingDecorations = setTimeout(() => {
 					[messageList, errors] = parser.parse(activeTextEditor.document.getText())!;
-					return decorator.decorate(activeTextEditor, messageList, errors);
+					decorator.decorate(activeTextEditor, messageList);
+					diagnostics.diagnose(activeTextEditor, messageList, errors);
 				}, 500);
 			}
 		}
@@ -85,7 +89,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	));
 
 	if (activeTextEditor !== undefined) {
-		decorator.decorate(activeTextEditor, messageList, errors);
+		decorator.decorate(activeTextEditor, messageList);
+		diagnostics.diagnose(activeTextEditor, messageList, errors);
 	}
 
 	// At extension startup

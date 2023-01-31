@@ -132,13 +132,17 @@ export class Parser {
 
 				const argument = new Literal(part.value.substring(0, firstComma), start, end);
 
-				const secondComma = part.value.indexOf(',', firstComma + 1);
-				const complexType = new Literal(part.value.substring(firstComma + 1, secondComma), globalOffset + part.start + firstComma + 2, globalOffset + part.start + secondComma + 1);
+				start = firstComma + 1;
+				const secondComma = part.value.indexOf(',', start);
+				end = secondComma;
+				({ start, end } = trim(part.value, start, end));
+				const complexType = new Literal(part.value.substring(start, end), globalOffset + part.start + start + 1, globalOffset + part.start + end + 1);
 				start = secondComma + 1;
 				const bracketedValues = matchCurlyBrackets(part.value);
 				for (const innerPart of bracketedValues) {
 					if (innerPart.name === 'content') {
 						end = innerPart.start - 1;
+						({ start, end } = trim(part.value, start, end));
 						var submessagekey = new Literal(part.value.substring(start, end), globalOffset + part.start + start + 1, globalOffset + part.start + end + 1);
 						var message = parseMessage(innerPart.value, globalOffset + part.start + innerPart.start, false);
 						submessages.set(submessagekey, message);
@@ -146,6 +150,16 @@ export class Parser {
 					}
 				}
 				return new ComplexMessage(globalOffset + part.start, globalOffset + part.end, argument, complexType, submessages);
+			}
+
+			function trim(text: string, start: number, end: number) {
+				while (text.charAt(start) === ' ') {
+					start++;
+				}
+				while (text.charAt(end - 1) === ' ') {
+					end--;
+				}
+				return { start, end };
 			}
 		}
 
