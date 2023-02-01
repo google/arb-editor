@@ -24,7 +24,7 @@ import path = require('path');
 import * as vscode from 'vscode';
 import { Decorator as Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
-import { Parser, StringMessage } from './messageParser';
+import { MessageList, Parser, StringMessage } from './messageParser';
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
 
@@ -34,41 +34,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	const decorator = new Decorator();
 	const diagnostics = new Diagnostics(context);
 	const parser = new Parser();
-
-	// decorate the active editor now
-	const activeTextEditor = vscode.window.activeTextEditor;
-
-	// Only trigger on arb files
-	if (!activeTextEditor || !path.basename(activeTextEditor.document.fileName).endsWith('.arb')) {
-		return;
-	}
-
-	let [messageList, errors] = parser.parse(activeTextEditor.document.getText())!;
+	let commonMessageList: MessageList | undefined;
 
 	// decorate when changing the active editor editor
-	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-		if (editor !== undefined) {
-			decorator.decorate(editor, messageList);
-			diagnostics.diagnose(editor, messageList, errors);
-		}
-	}, null, context.subscriptions));
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => handleFile(editor), null, context.subscriptions));
 
 	// decorate when the document changes
-	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
-		if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
-			if (pendingDecorations) {
-				clearTimeout(pendingDecorations);
-			}
-			const activeTextEditor = vscode.window.activeTextEditor;
-			if (activeTextEditor !== undefined) {
-				pendingDecorations = setTimeout(() => {
-					[messageList, errors] = parser.parse(activeTextEditor.document.getText())!;
-					decorator.decorate(activeTextEditor, messageList);
-					diagnostics.diagnose(activeTextEditor, messageList, errors);
-				}, 500);
-			}
-		}
-	}, null, context.subscriptions));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => handleFile(vscode.window.activeTextEditor, true), null, context.subscriptions));
 
 	// Make the snippets available in arb files
 	const completions = getSnippets(snippetsJson);
@@ -77,8 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		{ language: 'json', pattern: `**/*.arb` },
 		{
 			provideCompletionItems(document, position, token, context) {
-				const messageTypeAtCursor = messageList.getMessageAt(document.offsetAt(position));
-
+				const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
 				if (messageTypeAtCursor instanceof StringMessage) {
 					return completionsStringInline;
 				} else {
@@ -89,12 +60,35 @@ export async function activate(context: vscode.ExtensionContext) {
 		},
 	));
 
-	if (activeTextEditor !== undefined) {
-		decorator.decorate(activeTextEditor, messageList);
-		diagnostics.diagnose(activeTextEditor, messageList, errors);
-	}
+	// decorate the active editor now
+	handleFile(vscode.window.activeTextEditor);
 
-	// At extension startup
+	function handleFile(editor: vscode.TextEditor | undefined, executeDelayed: boolean = false) {
+		if (!editor || isNotArbFile(editor.document)) {
+			return;
+		}
+		if (executeDelayed && pendingDecorations) {
+			clearTimeout(pendingDecorations);
+		}
+		if (editor) {
+			if (executeDelayed) {
+				pendingDecorations = setTimeout(() => commonMessageList = parseAndDecorate(), 250);
+			} else {
+				commonMessageList = parseAndDecorate();
+			}
+		}
+
+		function parseAndDecorate(): MessageList {
+			let [messageList, errors] = parser.parse(editor!.document.getText())!;
+			decorator.decorate(editor!, messageList);
+			diagnostics.diagnose(editor!, messageList, errors);
+			return messageList;
+		}
+	}
+}
+
+function isNotArbFile(document: vscode.TextDocument): boolean {
+	return document.languageId !== 'arb' && !path.basename(document.fileName).endsWith('.arb');
 }
 
 function getSnippets(snippetsJson: any): vscode.CompletionList {
