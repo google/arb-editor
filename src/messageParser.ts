@@ -17,18 +17,48 @@ export class Parser {
 
 	parse(document: string): [MessageList, Literal[]] {
 		let isReference: boolean = false;
-		const messages = new Map<Literal, Message>();
-		const metadata = new Map<Literal, Metadata>();
+		const messages = new Map<Key, Message>();
+		const metadata = new Map<Key, Metadata>();
 
 		let nestingLevel = 0;
 		let inReferenceTag = false;
-		let placeholderLevel: number | null;
-		let metadataLevel: number | null;
-		let metadataKey: Literal | null;
-		let messageKey: Literal | null;
+		let placeholderLevel: number | null = null;
+		let metadataLevel: number | null = null;
+		let metadataKey: Key | null = null;
+		let messageKey: Key | null = null;
 		let definedPlaceholders: Literal[] = [];
 		let errors: Literal[] = [];
+		let indentation: number | null = null;
 		visit(document, {
+			onObjectBegin: (offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
+				nestingLevel++;
+			},
+			onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
+				const literal = new Key(property, offset + 1, offset + property.length + 1);
+				if (placeholderLevel === nestingLevel - 1) {
+					definedPlaceholders.push(literal);
+				}
+				if (nestingLevel === 1) {
+					indentation = startCharacter;
+					const isMetadata = property.startsWith('@');
+					if (isMetadata) {
+						const isGlobalMetadata = property.startsWith('@@');
+						if (isGlobalMetadata) {
+							if (property === '@@x-reference') {
+								inReferenceTag = true;
+							}
+						} else {
+							metadataKey = literal;
+							metadataLevel = nestingLevel;
+						}
+					} else {
+						messageKey = literal;
+					}
+				}
+				if (metadataLevel === nestingLevel - 1 && property === 'placeholders') {
+					placeholderLevel = nestingLevel;
+				}
+			},
 			onLiteralValue: (value: any, offset: number) => {
 				if (inReferenceTag) {
 					isReference = (value === true);
@@ -45,35 +75,7 @@ export class Parser {
 							throw error;
 						}
 					}
-				}
-			},
-			onObjectBegin: (offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
-				nestingLevel++;
-			},
-			onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
-				const literal = new Literal(property, offset + 1, offset + property.length + 1);
-				if (placeholderLevel === nestingLevel - 1) {
-					definedPlaceholders.push(literal);
-				}
-				if (nestingLevel === 1) {
-					const isMetadata = property.startsWith('@');
-					if (isMetadata) {
-						const isGlobalMetadata = property.startsWith('@@');
-						if (isGlobalMetadata) {
-							if (property === '@@x-reference') {
-								inReferenceTag = true;
-							}
-						} else {
-							metadataKey = literal;
-							metadataLevel = nestingLevel;
-						}
-						messageKey = null;
-					} else {
-						messageKey = literal;
-					}
-				}
-				if (metadataLevel === nestingLevel - 1 && property === 'placeholders') {
-					placeholderLevel = nestingLevel;
+					messageKey.endOfMessage = offset + value.length + 2;
 				}
 			},
 			onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
@@ -163,7 +165,7 @@ export class Parser {
 			}
 		}
 
-		return [new MessageList(isReference, messages, metadata), errors];
+		return [new MessageList(isReference, indentation ?? 0, messages, metadata), errors];
 	}
 }
 function matchCurlyBrackets(value: string): XRegExp.MatchRecursiveValueNameMatch[] {
@@ -197,8 +199,9 @@ export class Literal {
 export class MessageList {
 	constructor(
 		public isReference: boolean,
-		public messages: Map<Literal, Message>,
-		public metadata: Map<Literal, Metadata>
+		public indentation: number,
+		public messages: Map<Key, Message>,
+		public metadata: Map<Key, Metadata>
 	) { }
 
 	getPlaceholders(): Literal[] {
@@ -230,6 +233,18 @@ export abstract class Message {
 	abstract getPlaceholders(): Literal[];
 
 	abstract whereIs(offset: number): Message | Literal | null;
+}
+
+export class Key extends Literal {
+	endOfMessage?: number;
+
+	constructor(
+		value: string,
+		start: number,
+		end: number,
+	) {
+		super(value, start, end);
+	}
 }
 
 export class CombinedMessage extends Message {

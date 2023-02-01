@@ -22,7 +22,7 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 
 import path = require('path');
 import * as vscode from 'vscode';
-import { QuickFixes } from './codeactions';
+import { CodeActions } from './codeactions';
 import { Decorator as Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { MessageList, Parser, StringMessage } from './messageParser';
@@ -35,6 +35,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const decorator = new Decorator();
 	const diagnostics = new Diagnostics(context);
 	const parser = new Parser();
+	const quickfixes = new CodeActions();
 	let commonMessageList: MessageList | undefined;
 
 	// decorate when changing the active editor editor
@@ -47,7 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider(
 			{ language: 'json', pattern: `**/*.arb` },
-			new QuickFixes(),
+			quickfixes,
 			{
 				providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
 			},
@@ -95,7 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		function parseAndDecorate(): MessageList {
 			let [messageList, errors] = parser.parse(editor!.document.getText())!;
 			decorator.decorate(editor!, messageList);
-			diagnostics.diagnose(editor!, messageList, errors);
+			diagnostics.diagnose(editor!, messageList, errors);quickfixes.update(messageList);
 			return messageList;
 		}
 	}

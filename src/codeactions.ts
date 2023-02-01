@@ -11,9 +11,15 @@
 'use strict';
 import * as vscode from 'vscode';
 import { DiagnosticCode } from './diagnose';
+import { Key, MessageList } from './messageParser';
 
 
-export class QuickFixes implements vscode.CodeActionProvider {
+export class CodeActions implements vscode.CodeActionProvider {
+	messageList: MessageList | undefined;
+
+	update(messageList: MessageList) {
+		this.messageList = messageList;
+	}
 
 	public static readonly providedCodeActionKinds = [
 		vscode.CodeActionKind.QuickFix
@@ -23,28 +29,17 @@ export class QuickFixes implements vscode.CodeActionProvider {
 		// for each diagnostic entry that has the matching `code`, create a code action command
 		return context.diagnostics
 			.filter(diagnostic => diagnostic.code === DiagnosticCode.missingMetadataForKey)
-			.map(diagnostic => this.createCommandCodeAction(diagnostic));
+			.map(diagnostic => this.createMetadataForKey(document, diagnostic, range))
+			.filter(codeAction => codeAction instanceof vscode.CodeAction);
 	}
 
-	private createCommandCodeAction(diagnostic: vscode.Diagnostic): vscode.CodeAction {
-		diagnostic.range
-	}
-	private isAtStartOfSmiley(document: vscode.TextDocument, range: vscode.Range) {
-		const start = range.start;
-		const line = document.lineAt(start.line);
-		return line.text[start.character] === ':' && line.text[start.character + 1] === ')';
-	}
+	private createMetadataForKey(document: vscode.TextDocument, diagnostic: vscode.Diagnostic, range: vscode.Range | vscode.Selection): vscode.CodeAction {
+		const message = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Key;
+		console.log(message.endOfMessage);
 
-	private createFix(document: vscode.TextDocument, range: vscode.Range, emoji: string): vscode.CodeAction {
-		const fix = new vscode.CodeAction(`Convert to ${emoji}`, vscode.CodeActionKind.QuickFix);
+		const fix = new vscode.CodeAction(`Add metadata for key '${message.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
-		fix.edit.replace(document.uri, new vscode.Range(range.start, range.start.translate(0, 2)), emoji);
+		fix.edit.insert(document.uri, document.positionAt(message.endOfMessage ?? 0), `,\n${' '.repeat(this.messageList?.indentation ?? 0)}"@${message.value}" : {}`);
 		return fix;
-	}
-
-	private createCommand(): vscode.CodeAction {
-		const action = new vscode.CodeAction('Learn more...', vscode.CodeActionKind.Empty);
-		action.command = { command: COMMAND, title: 'Learn more about emojis', tooltip: 'This will open the unicode emoji page.' };
-		return action;
 	}
 }
