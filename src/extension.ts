@@ -22,6 +22,7 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 
 import path = require('path');
 import * as vscode from 'vscode';
+import { QuickFixes } from './codeactions';
 import { Decorator as Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { MessageList, Parser, StringMessage } from './messageParser';
@@ -42,23 +43,36 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate when the document changes
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => handleFile(vscode.window.activeTextEditor, true), null, context.subscriptions));
 
+	// add quickfixes for diagnostics
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider(
+			{ language: 'json', pattern: `**/*.arb` },
+			new QuickFixes(),
+			{
+				providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+			},
+		),
+	);
+
 	// Make the snippets available in arb files
 	const completions = getSnippets(snippetsJson);
 	const completionsStringInline = getSnippets(snippetsInlineJson);
-	context.subscriptions.push(vscode.languages.registerCompletionItemProvider(
-		{ language: 'json', pattern: `**/*.arb` },
-		{
-			provideCompletionItems(document, position, token, context) {
-				const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
-				if (messageTypeAtCursor instanceof StringMessage) {
-					return completionsStringInline;
-				} else {
-					return completions;
-				}
+	context.subscriptions.push(
+		vscode.languages.registerCompletionItemProvider(
+			{ language: 'json', pattern: `**/*.arb` },
+			{
+				provideCompletionItems(document, position, token, context) {
+					const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
+					if (messageTypeAtCursor instanceof StringMessage) {
+						return completionsStringInline;
+					} else {
+						return completions;
+					}
 
-			}
-		},
-	));
+				}
+			},
+		),
+	);
 
 	// decorate the active editor now
 	handleFile(vscode.window.activeTextEditor);
