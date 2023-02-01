@@ -34,38 +34,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	const diagnostics = new Diagnostics(context);
 	const parser = new Parser();
 	let commonMessageList: MessageList | undefined;
-	
-	// decorate when changing the active editor editor
-	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-		// Only trigger on arb files
-		if (!editor || isNotArbFile(editor.document)) {
-			return;
-		}
 
-		let [messageList, errors] = parser.parse(editor.document.getText())!;
-		commonMessageList = messageList;
-		decorator.decorate(editor, messageList);
-		diagnostics.diagnose(editor, messageList, errors);
-	}, null, context.subscriptions));
+	// decorate when changing the active editor editor
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => handleFile(editor), null, context.subscriptions));
 
 	// decorate when the document changes
-	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor || isNotArbFile(event.document)) {
-			return;
-		}
-		if (pendingDecorations) {
-			clearTimeout(pendingDecorations);
-		}
-		if (editor !== undefined) {
-			pendingDecorations = setTimeout(() => {
-				let [messageList, errors] = parser.parse(editor.document.getText())!;
-				commonMessageList = messageList;
-				decorator.decorate(editor, messageList);
-				diagnostics.diagnose(editor, messageList, errors);
-			}, 500);
-		}
-	}, null, context.subscriptions));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => handleFile(vscode.window.activeTextEditor, true), null, context.subscriptions));
 
 	// Make the snippets available in arb files
 	const completions = getSnippets(snippetsJson);
@@ -75,7 +49,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		{
 			provideCompletionItems(document, position, token, context) {
 				const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
-
 				if (messageTypeAtCursor instanceof StringMessage) {
 					return completionsStringInline;
 				} else {
@@ -87,14 +60,29 @@ export async function activate(context: vscode.ExtensionContext) {
 	));
 
 	// decorate the active editor now
-	const activeTextEditor = vscode.window.activeTextEditor;
-	if (!activeTextEditor || isNotArbFile(activeTextEditor.document)) {
-		return;
-	} else {
-		let [messageList, errors] = parser.parse(activeTextEditor.document.getText())!;
-		commonMessageList = messageList;
-		decorator.decorate(activeTextEditor, messageList);
-		diagnostics.diagnose(activeTextEditor, messageList, errors);
+	handleFile(vscode.window.activeTextEditor);
+
+	function handleFile(editor: vscode.TextEditor | undefined, executeDelayed: boolean = false) {
+		if (!editor || isNotArbFile(editor.document)) {
+			return;
+		}
+		if (executeDelayed && pendingDecorations) {
+			clearTimeout(pendingDecorations);
+		}
+		if (editor) {
+			if (executeDelayed) {
+				pendingDecorations = setTimeout(() => commonMessageList = parseAndDecorate(), 250);
+			} else {
+				commonMessageList = parseAndDecorate();
+			}
+		}
+
+		function parseAndDecorate(): MessageList {
+			let [messageList, errors] = parser.parse(editor!.document.getText())!;
+			decorator.decorate(editor!, messageList);
+			diagnostics.diagnose(editor!, messageList, errors);
+			return messageList;
+		}
 	}
 }
 
