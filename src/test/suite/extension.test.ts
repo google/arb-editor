@@ -34,7 +34,9 @@ suite('Extension Test Suite', async () => {
 		if (process.env.UPDATE_GOLDENS) {
 			console.warn('Updating golden test.');
 
-			//Run `UPDATE_GOLDENS=1 npm test` to regenerate the golden test
+			// Run ```
+			// UPDATE_GOLDENS=1 npm test
+			// ``` to regenerate the golden test
 			await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
 		} else {
 			const goldenEditor = await getEditor('testarb.annotated');
