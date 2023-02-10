@@ -44,10 +44,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate when the document changes
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => handleFile(vscode.window.activeTextEditor, true), null, context.subscriptions));
 
+	const filePattern = { language: 'json', pattern: `**/*.arb` };
 	// add quickfixes for diagnostics
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider(
-			{ language: 'json', pattern: `**/*.arb` },
+			filePattern,
 			quickfixes,
 			{
 				providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
@@ -60,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const completionsStringInline = getSnippets(snippetsInlineJson);
 	context.subscriptions.push(
 		vscode.languages.registerCompletionItemProvider(
-			{ language: 'json', pattern: `**/*.arb` },
+			filePattern,
 			{
 				provideCompletionItems(document, position, token, context) {
 					const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));

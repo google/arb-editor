@@ -35,7 +35,6 @@ export class CodeActions implements vscode.CodeActionProvider {
 
 	private createMetadataForKey(document: vscode.TextDocument, diagnostic: vscode.Diagnostic, range: vscode.Range | vscode.Selection): vscode.CodeAction {
 		const message = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Key;
-		console.log(message.endOfMessage);
 
 		const fix = new vscode.CodeAction(`Add metadata for key '${message.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
