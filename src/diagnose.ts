@@ -15,6 +15,18 @@ import { CombinedMessage, ComplexMessage, Literal, Message, MessageList, Metadat
 const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
 
+export enum DiagnosticCode {
+	mismatchedBrackets,
+	metadataForMissingKey,
+	invalidKey,
+	missingMetadataForKey,
+	invalidPlaceholder,
+	missingOtherInICU,
+	unknownICUMessageType,
+	placeholderWithoutMetadata,
+	missingPlaceholderWithMetadata,
+}
+
 export class Diagnostics {
 	diagnostics = vscode.languages.createDiagnosticCollection("arb");
 
@@ -26,7 +38,7 @@ export class Diagnostics {
 		let diagnosticsList: vscode.Diagnostic[] = [];
 
 		for (const error of errors) {
-			showErrorAt(error.start, error.end, error.value, vscode.DiagnosticSeverity.Error);
+			showErrorAt(error.start, error.end, error.value, vscode.DiagnosticSeverity.Error, DiagnosticCode.mismatchedBrackets);
 		}
 
 		for (const [key, message] of messageList?.messages) {
@@ -44,7 +56,12 @@ export class Diagnostics {
 		for (const [key, metadata] of messageList?.metadata) {
 			const hasMessage = Array.from(messageList.messages.keys()).filter((literal) => '@' + literal.value === key.value);
 			if (hasMessage.length === 0) {
-				showErrorAt(key.start, key.end, `Metadata for an undefined key. Add a message key with the name "${key.value.substring(1)}".`, vscode.DiagnosticSeverity.Error);
+				showErrorAt(key.start,
+					key.end,
+					`Metadata for an undefined key. Add a message key with the name "${key.value.substring(1)}".`,
+					vscode.DiagnosticSeverity.Error,
+					DiagnosticCode.metadataForMissingKey,
+				);
 			}
 		}
 
@@ -52,10 +69,20 @@ export class Diagnostics {
 
 		function validateKey(key: Literal, metadata: Metadata | null, isReference: boolean) {
 			if (keyNameRegex.exec(key.value) === null) {
-				showErrorAt(key.start, key.end, `Key "${key.value}" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores.`, vscode.DiagnosticSeverity.Error);
+				showErrorAt(key.start,
+					key.end,
+					`Key "${key.value}" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores.`,
+					vscode.DiagnosticSeverity.Error,
+					DiagnosticCode.invalidKey,
+				);
 			} else {
 				if (metadata === null && isReference) {
-					showErrorAt(key.start, key.end, `The message with key "${key.value}" does not have metadata defined.`, vscode.DiagnosticSeverity.Information);
+					showErrorAt(key.start,
+						key.end,
+						`The message with key "${key.value}" does not have metadata defined.`,
+						vscode.DiagnosticSeverity.Information,
+						DiagnosticCode.missingMetadataForKey,
+					);
 				}
 			}
 		}
@@ -68,18 +95,24 @@ export class Diagnostics {
 			} else if (message instanceof Placeholder) {
 				validatePlaceholder(message.placeholder, metadata);
 			} else if (message instanceof ComplexMessage) {
-
 				validatePlaceholder(message.argument, metadata);
-				if (placeholderNameRegex.exec(message.argument.value) === null) {
-					showErrorAt(message.argument.start, message.argument.end, `"${message.argument.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
-				}
 
 				if (!Array.from(message.messages.keys()).some((p) => p.value === 'other')) {
-					showErrorAt(message.start + 1, message.end + 1, `The ICU message format requires a 'other' argument.`, vscode.DiagnosticSeverity.Error);
+					showErrorAt(message.start + 1,
+						message.end + 1,
+						`The ICU message format requires a 'other' argument.`,
+						vscode.DiagnosticSeverity.Error,
+						DiagnosticCode.missingOtherInICU,
+					);
 				}
 
 				if (!['plural', 'select', 'gender'].includes(message.complexType.value)) {
-					showErrorAt(message.complexType.start, message.complexType.end, `Unknown ICU messagetype "${message.complexType.value}"`, vscode.DiagnosticSeverity.Error);
+					showErrorAt(message.complexType.start,
+						message.complexType.end,
+						`Unknown ICU messagetype "${message.complexType.value}"`,
+						vscode.DiagnosticSeverity.Error,
+						DiagnosticCode.unknownICUMessageType,
+					);
 				} else {
 					for (const submessage of message.messages.values()) {
 						validateMessage(submessage, metadata);
@@ -91,10 +124,20 @@ export class Diagnostics {
 		function validatePlaceholder(placeholder: Literal, metadata: Metadata | null) {
 			if (placeholderNameRegex.exec(placeholder.value) !== null) {
 				if (!metadata?.placeholders.some((p) => p.value === placeholder.value)) {
-					showErrorAt(placeholder.start, placeholder.end, `Placeholder "${placeholder.value}" not defined in the message metadata.`, vscode.DiagnosticSeverity.Warning);
+					showErrorAt(placeholder.start,
+						placeholder.end,
+						`Placeholder "${placeholder.value}" not defined in the message metadata.`,
+						vscode.DiagnosticSeverity.Warning,
+						DiagnosticCode.placeholderWithoutMetadata,
+					);
 				}
 			} else {
-				showErrorAt(placeholder.start, placeholder.end, `"${placeholder.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`, vscode.DiagnosticSeverity.Error);
+				showErrorAt(placeholder.start,
+					placeholder.end,
+					`"${placeholder.value}" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores.`,
+					vscode.DiagnosticSeverity.Error,
+					DiagnosticCode.invalidPlaceholder,
+				);
 			}
 		}
 
@@ -102,15 +145,22 @@ export class Diagnostics {
 			const placeholders = message.getPlaceholders();
 			for (const placeholder of metadata?.placeholders ?? []) {
 				if (!placeholders.some((p) => p.value === placeholder.value)) {
-					showErrorAt(placeholder.start, placeholder.end, `The placeholder is defined in the metadata, but not in the message.`, vscode.DiagnosticSeverity.Warning);
+					showErrorAt(placeholder.start,
+						placeholder.end,
+						`The placeholder is defined in the metadata, but not in the message.`,
+						vscode.DiagnosticSeverity.Warning,
+						DiagnosticCode.missingPlaceholderWithMetadata,
+					);
 				}
 			}
 		}
 
 
-		function showErrorAt(start: number, end: number, errorMessage: string, severity: vscode.DiagnosticSeverity) {
+		function showErrorAt(start: number, end: number, errorMessage: string, severity: vscode.DiagnosticSeverity, code: DiagnosticCode) {
 			const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
-			diagnosticsList.push(new vscode.Diagnostic(range, errorMessage, severity));
+			const diagnostic = new vscode.Diagnostic(range, errorMessage, severity);
+			diagnostic.code = code;
+			diagnosticsList.push(diagnostic);
 		}
 
 		return diagnosticsList;

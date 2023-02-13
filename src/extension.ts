@@ -22,17 +22,20 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 
 import path = require('path');
 import * as vscode from 'vscode';
+import { CodeActions } from './codeactions';
 import { Decorator as Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { MessageList, Parser, StringMessage } from './messageParser';
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
 	const decorator = new Decorator();
 	const diagnostics = new Diagnostics(context);
 	const parser = new Parser();
+	const quickfixes = new CodeActions();
 	let commonMessageList: MessageList | undefined;
 
 	// decorate when changing the active editor editor
@@ -41,23 +44,37 @@ export async function activate(context: vscode.ExtensionContext) {
 	// decorate when the document changes
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => handleFile(vscode.window.activeTextEditor, true), null, context.subscriptions));
 
+	const filePattern = { language: 'json', pattern: `**/*.arb` };
+	// add quickfixes for diagnostics
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider(
+			filePattern,
+			quickfixes,
+			{
+				providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+			},
+		),
+	);
+
 	// Make the snippets available in arb files
 	const completions = getSnippets(snippetsJson);
 	const completionsStringInline = getSnippets(snippetsInlineJson);
-	context.subscriptions.push(vscode.languages.registerCompletionItemProvider(
-		{ language: 'json', pattern: `**/*.arb` },
-		{
-			provideCompletionItems(document, position, token, context) {
-				const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
-				if (messageTypeAtCursor instanceof StringMessage) {
-					return completionsStringInline;
-				} else {
-					return completions;
-				}
+	context.subscriptions.push(
+		vscode.languages.registerCompletionItemProvider(
+			filePattern,
+			{
+				provideCompletionItems(document, position, token, context) {
+					const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
+					if (messageTypeAtCursor instanceof StringMessage) {
+						return completionsStringInline;
+					} else {
+						return completions;
+					}
 
-			}
-		},
-	));
+				}
+			},
+		),
+	);
 
 	// decorate the active editor now
 	handleFile(vscode.window.activeTextEditor);
@@ -80,7 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		function parseAndDecorate(): MessageList {
 			let [messageList, errors] = parser.parse(editor!.document.getText())!;
 			decorator.decorate(editor!, messageList);
-			diagnostics.diagnose(editor!, messageList, errors);
+			diagnostics.diagnose(editor!, messageList, errors);quickfixes.update(messageList);
 			return messageList;
 		}
 	}
@@ -111,3 +128,4 @@ function getSnippets(snippetsJson: any): vscode.CompletionList {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
+

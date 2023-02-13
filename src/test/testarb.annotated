@@ -30,7 +30,6 @@
                                                                                                                                                                               ^^^[decoration]plural
                                                                                                                                                                                                                    ^^^^^[decoration]plural
                                                         ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
-                                                        ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
                                                                                                                                                                                                   ^^^^^^[Warning]:"Placeholder "counts" not defined in the message metadata."
     "@pageHomeInboxCount": {
         "description": "New messages count on the Home screen",
