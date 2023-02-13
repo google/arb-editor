@@ -34,11 +34,11 @@ export class CodeActions implements vscode.CodeActionProvider {
 	}
 
 	private createMetadataForKey(document: vscode.TextDocument, diagnostic: vscode.Diagnostic, range: vscode.Range | vscode.Selection): vscode.CodeAction {
-		const message = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Key;
+		const message = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Key | undefined;
 
-		const fix = new vscode.CodeAction(`Add metadata for key '${message.value}'`, vscode.CodeActionKind.QuickFix);
+		const fix = new vscode.CodeAction(`Add metadata for key '${message?.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
-		fix.edit.insert(document.uri, document.positionAt(message.endOfMessage ?? 0), `,\n${' '.repeat(this.messageList?.indentation ?? 0)}"@${message.value}" : {}`);
+		fix.edit.insert(document.uri, document.positionAt(message?.endOfMessage ?? 0), `,\n${' '.repeat(this.messageList?.indentation ?? 0)}"@${message?.value}" : {}`);
 		return fix;
 	}
 }

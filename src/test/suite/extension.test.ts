@@ -19,7 +19,7 @@ import { EOL } from 'os';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
-import { Parser } from '../../messageParser';
+import { Key, Parser } from '../../messageParser';
 import { Diagnostics } from '../../diagnose';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
@@ -81,8 +81,34 @@ suite('Extension Test Suite', async () => {
 		assert.equal(messages.metadata.size, 5);
 	});
 
-});
+	test("Test quickfix", async () => {
+		const editor = await getEditor('quickfix.arb');
 
+		// Parse original
+		const [messageList, errors] = new Parser().parse(editor.document.getText());
+		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
+		assert.equal(errors.length, 0);
+		assert.equal(messageList.messages.size, 1);
+		assert.equal(diagnostics.length, 1);
+
+		// Apply fix
+		const messageKey = messageList.messages.keys().next().value as Key;
+		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
+			editor.document.uri,
+			new vscode.Range(
+				editor.document.positionAt(messageKey.start + 1),
+				editor.document.positionAt(messageKey.end - 1)
+			));
+		await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+
+		// Parse fixed
+		const [newMessageList, newErrors] = new Parser().parse(editor.document.getText());
+		const newDiagnostics = new Diagnostics().diagnose(editor, newMessageList, newErrors);
+		assert.equal(newErrors.length, 0);
+		assert.equal(newMessageList.messages.size, 1);
+		assert.equal(newDiagnostics.length, 0);
+	});
+});
 
 const testFolderLocation: string = "/../../../src/test/";
 
