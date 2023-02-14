@@ -1,6 +1,5 @@
 {
 	"@@locale": "en",
 	"@@x-reference": true,
-	"commonVehicleType": "A simple message",
-	"helloAndWelcome2": "Welcome {firstName} von {lastName}!",
+	"helloAndWelcome2": "Welcome!"
 }

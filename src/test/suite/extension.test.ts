@@ -19,7 +19,7 @@ import { EOL } from 'os';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
-import { Key, Parser } from '../../messageParser';
+import { CombinedMessage, Key, Parser } from '../../messageParser';
 import { Diagnostics } from '../../diagnose';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
@@ -81,7 +81,7 @@ suite('Extension Test Suite', async () => {
 		assert.equal(messages.metadataEntries.length, 5);
 	});
 
-	test("Test quickfix", async () => {
+	test("Test quickfix for missing Metadata", async () => {
 		const editor = await getEditor('quickfix.arb');
 
 		// Parse original
@@ -89,13 +89,39 @@ suite('Extension Test Suite', async () => {
 		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
 		const numberOfDiagnostics = diagnostics.length;
 
-		// Apply fix
+		// Apply fix for missing metadata
 		const messageKey = messageList.messageEntries[0].key as Key;
 		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
 			editor.document.uri,
 			new vscode.Range(
 				editor.document.positionAt(messageKey.start + 1),
 				editor.document.positionAt(messageKey.end - 1)
+			));
+		await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+
+		// Parse fixed
+		const [newMessageList, newErrors] = new Parser().parse(editor.document.getText());
+		const newDiagnostics = new Diagnostics().diagnose(editor, newMessageList, newErrors);
+		assert.equal(newDiagnostics.length, numberOfDiagnostics - 1);
+	});
+
+	test("Test quickfix for placeholder without metadata", async () => {
+		const editor = await getEditor('quickfix2.arb');
+
+		// Parse original
+		const [messageList, errors] = new Parser().parse(editor.document.getText());
+		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
+		const numberOfDiagnostics = diagnostics.length;
+
+		// Apply fix for placeholder not defined in metadata
+		const message = messageList.messageEntries[0].message as CombinedMessage;
+		const placeholder = message.getPlaceholders()[0];
+
+		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
+			editor.document.uri,
+			new vscode.Range(
+				editor.document.positionAt(placeholder.start + 1),
+				editor.document.positionAt(placeholder.end - 1)
 			));
 		await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
 
