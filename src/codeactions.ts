@@ -30,18 +30,18 @@ export class CodeActions implements vscode.CodeActionProvider {
 
 		const newMetadataActions = diagnostics
 			.filter(diagnostic => diagnostic.code === DiagnosticCode.missingMetadataForKey)
-			.map(diagnostic => this.createMetadataForKey(document, diagnostic, range));
+			.map(_ => this.createMetadataForKey(document, range));
 
 		const undefinedPlaceholderActions = diagnostics
 			.filter(diagnostic => diagnostic.code === DiagnosticCode.placeholderWithoutMetadata)
-			.map(diagnostic => this.createPlaceholder(document, diagnostic, range));
+			.map(_ => this.createPlaceholder(document, range));
 
 		return [...newMetadataActions, ...undefinedPlaceholderActions]
 			.filter(codeAction => codeAction instanceof vscode.CodeAction)
 			.map(codeAction => codeAction as vscode.CodeAction);
 	}
 
-	private createMetadataForKey(document: vscode.TextDocument, diagnostic: vscode.Diagnostic, range: vscode.Range | vscode.Selection): vscode.CodeAction {
+	private createMetadataForKey(document: vscode.TextDocument, range: vscode.Range | vscode.Selection): vscode.CodeAction {
 		const messageKey = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Key | undefined;
 
 		const fix = new vscode.CodeAction(`Add metadata for key '${messageKey?.value}'`, vscode.CodeActionKind.QuickFix);
@@ -50,7 +50,7 @@ export class CodeActions implements vscode.CodeActionProvider {
 		return fix;
 	}
 
-	private createPlaceholder(document: vscode.TextDocument, diagnostic: vscode.Diagnostic, range: vscode.Range | vscode.Selection): vscode.CodeAction | undefined {
+	private createPlaceholder(document: vscode.TextDocument, range: vscode.Range | vscode.Selection): vscode.CodeAction | undefined {
 		const placeholder = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Placeholder | undefined;
 		var parent = placeholder?.parent;
 		while (!(parent instanceof MessageEntry)) {
@@ -60,23 +60,29 @@ export class CodeActions implements vscode.CodeActionProvider {
 		fix.edit = new vscode.WorkspaceEdit();
 
 		const parentKey = (parent as MessageEntry).key;
-		const metadatas = this.messageList?.metadataEntries.filter((entry) => entry.key.value === '@' + parentKey.value);
-		if (metadatas) {
-			const metadataForMessage = metadatas[0];
-
-			const metadata = metadataForMessage.message as Metadata;
+		const metadataBlock = this.messageList?.metadataEntries.find((entry) => entry.key.value === '@' + parentKey.value);
+		if (metadataBlock) {
+			const metadata = metadataBlock.message as Metadata;
 			if (metadata.placeholders.length > 0) {
 				const lastPlaceholderEnd = metadata.placeholders[metadata.placeholders.length - 1].objectEnd;
-				fix.edit.insert(document.uri, document.positionAt(lastPlaceholderEnd!), `,\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}`);
+				fix.edit.insert(
+					document.uri,
+					document.positionAt(lastPlaceholderEnd!),
+					`,\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}`
+				);
 			} else if (metadata.lastPlaceholderEnd) {
-				fix.edit.insert(document.uri, document.positionAt(metadata.lastPlaceholderEnd), `\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(1)}`);
+				fix.edit.insert(
+					document.uri,
+					document.positionAt(metadata.lastPlaceholderEnd),
+					`\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(1)}`
+				);
 			} else {
 				const insertable = `\n${this.messageList!.getIndent(1)}"placeholders": {\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(1)}}\n${this.messageList!.getIndent()}`;
 				fix.edit.insert(document.uri, document.positionAt(metadata.metadataEnd), insertable);
 			}
 			return fix;
 		} else {
-			// fix.edit.insert(document.uri, document.positionAt(parentKey?.endOfMessage ?? 0), `,\n${' '.repeat(this.messageList?.this.messageList!.getIndent() ?? 0)}"@${parentKey?.value}" : {}`);
+			// TODO(mosuem): In this case, there is no metadata block yet. This could be handled by first running the fix for that, and then retrying this.
 		}
 	}
 }

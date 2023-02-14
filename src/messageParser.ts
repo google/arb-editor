@@ -199,14 +199,10 @@ export class MessageList {
 	}
 
 	getMessageAt(offset: number): Message | Metadata | null {
-		const partsContaining = [...this.messageEntries, ...this.metadataEntries]
+		return [...this.messageEntries, ...this.metadataEntries]
 			.flatMap((entry) => [entry.key, entry.message])
-			.filter((value) => value.whereIs(offset) !== null);
-		if (partsContaining.length > 0) {
-			return partsContaining[0].whereIs(offset);
-		} else {
-			return null;
-		}
+			.map((message) => message.whereIs(offset))
+			.find((whereIs) => whereIs !== null) ?? null;
 	}
 }
 
@@ -228,11 +224,9 @@ export class Metadata {
 	) { }
 
 	whereIs(offset: number): Message | null {
-		const placeholdersContaining = this.placeholders.filter((placeholder) => placeholder.whereIs(offset) !== null);
-		if (placeholdersContaining.length > 0) {
-			return placeholdersContaining[0].whereIs(offset);
-		}
-		return null;
+		return this.placeholders
+			.map((placeholder) => placeholder.whereIs(offset))
+			.find((whereIs) => whereIs !== null) ?? null;
 	}
 }
 
@@ -310,12 +304,9 @@ export class CombinedMessage extends Message {
 
 	whereIs(offset: number): Message | null {
 		if (this.start < offset && offset < this.end) {
-			const partsContaining = this.parts.filter((part) => part.whereIs(offset) !== null);
-			if (partsContaining.length > 0) {
-				return partsContaining[0].whereIs(offset);
-			} else {
-				return this;
-			}
+			return this.parts
+				.map((part) => part.whereIs(offset))
+				.find((whereIs) => whereIs !== null) ?? this;
 		}
 		return null;
 	}
@@ -344,12 +335,10 @@ export class ComplexMessage extends Message {
 
 	whereIs(offset: number): Message | null {
 		if (this.start < offset && offset < this.end) {
-			const partsContaining = Array.from(this.messages.entries()).filter(([literal, message]) => literal.whereIs(offset) !== null || message.whereIs(offset) !== null);
-			if (partsContaining.length > 0) {
-				return partsContaining[0][0].whereIs(offset) ?? partsContaining[0][1].whereIs(offset);
-			} else {
-				return null;
-			}
+			return Array.from(this.messages.entries())
+				.flatMap(([literal, message]) => [literal, message])
+				.map((part) => part.whereIs(offset))
+				.find((whereIs) => whereIs !== null) ?? null;
 		}
 		return null;
 	}
