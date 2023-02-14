@@ -1,5 +1,5 @@
 {
-    "@@locale": "en",
-    "@@x-reference": true,
-    "commonVehicleType": "A simple message"
+	"@@locale": "en",
+	"@@x-reference": true,
+	"helloAndWelcome2": "Welcome!"
 }

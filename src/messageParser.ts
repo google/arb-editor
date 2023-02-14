@@ -17,8 +17,8 @@ export class Parser {
 
 	parse(document: string): [MessageList, Literal[]] {
 		let isReference: boolean = false;
-		const messages = new Map<Key, Message>();
-		const metadata = new Map<Key, Metadata>();
+		const messages: MessageEntry[] = [];
+		const metadata: MessageEntry[] = [];
 
 		let nestingLevel = 0;
 		let inReferenceTag = false;
@@ -26,20 +26,23 @@ export class Parser {
 		let metadataLevel: number | null = null;
 		let metadataKey: Key | null = null;
 		let messageKey: Key | null = null;
-		let definedPlaceholders: Literal[] = [];
+		let definedPlaceholders: PlaceholderMetadata[] = [];
 		let errors: Literal[] = [];
 		let indentation: number | null = null;
+		let indentationCharacter: string | null = null;
+		let totalPlaceholderEnd: number | null = null;
 		visit(document, {
 			onObjectBegin: (offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
 				nestingLevel++;
 			},
 			onObjectProperty: (property: string, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
-				const literal = new Key(property, offset + 1, offset + property.length + 1);
+				const key = new Key(property, offset + 1, offset + property.length + 1);
 				if (placeholderLevel === nestingLevel - 1) {
-					definedPlaceholders.push(literal);
+					definedPlaceholders.push(new PlaceholderMetadata(property, offset + 1, offset + property.length + 1));
 				}
 				if (nestingLevel === 1) {
 					indentation = startCharacter;
+					indentationCharacter = document.substring(offset - 1, offset);
 					const isMetadata = property.startsWith('@');
 					if (isMetadata) {
 						const isGlobalMetadata = property.startsWith('@@');
@@ -48,11 +51,11 @@ export class Parser {
 								inReferenceTag = true;
 							}
 						} else {
-							metadataKey = literal;
+							metadataKey = key;
 							metadataLevel = nestingLevel;
 						}
 					} else {
-						messageKey = literal;
+						messageKey = key;
 					}
 				}
 				if (metadataLevel === nestingLevel - 1 && property === 'placeholders') {
@@ -66,7 +69,7 @@ export class Parser {
 				} else if (nestingLevel === 1 && messageKey !== null) {
 					try {
 						var message = parseMessage(value, offset, false);
-						messages.set(messageKey!, message);
+						messages.push(new MessageEntry(messageKey!, message));
 					} catch (error: any) {
 						//Very hacky solution to catch all errors here and store them, but better than not checking at all... The error has no special type, unfortunately.
 						if (String(error).startsWith('Error: Unbalanced ')) {
@@ -80,12 +83,15 @@ export class Parser {
 			},
 			onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
 				nestingLevel--;
-				if (placeholderLevel !== null && nestingLevel < placeholderLevel) {
-					placeholderLevel = null;
+				if (placeholderLevel !== null && nestingLevel === placeholderLevel + 1) {
+					definedPlaceholders[definedPlaceholders.length - 1].objectEnd = offset + length;
+				}
+				if (placeholderLevel !== null && nestingLevel === placeholderLevel) {
+					totalPlaceholderEnd = offset + length - 1;
 				}
 				if (metadataLevel !== null && nestingLevel <= metadataLevel) {
 					metadataLevel = -1;
-					metadata.set(metadataKey!, new Metadata([...definedPlaceholders]));
+					metadata.push(new MessageEntry(metadataKey!, new Metadata([...definedPlaceholders], offset, totalPlaceholderEnd ?? undefined)));
 					definedPlaceholders = [];
 					metadataKey = null;
 				}
@@ -97,11 +103,10 @@ export class Parser {
 			const vals = matchCurlyBrackets(messageString);
 
 			if (vals.length === 0) {
-				const literal = new Literal(messageString, globalOffset, globalOffset + messageString.length);
 				if (expectPlaceholder) {
-					return new Placeholder(literal);
+					return new Placeholder(messageString, globalOffset, globalOffset + messageString.length);
 				} else {
-					return new StringMessage(literal);
+					return new Literal(messageString, globalOffset, globalOffset + messageString.length);
 				}
 			}
 			const submessages: Message[] = [];
@@ -165,7 +170,7 @@ export class Parser {
 			}
 		}
 
-		return [new MessageList(isReference, indentation ?? 0, messages, metadata), errors];
+		return [new MessageList(isReference, indentation ?? 0, indentationCharacter ?? ' ', messages, metadata), errors];
 	}
 }
 function matchCurlyBrackets(value: string): XRegExp.MatchRecursiveValueNameMatch[] {
@@ -176,74 +181,107 @@ function matchCurlyBrackets(value: string): XRegExp.MatchRecursiveValueNameMatch
 	});
 }
 
-export class Literal {
-	constructor(
-		public value: string,
-		public start: number,
-		public end: number
-	) { }
-
-	public toString = (): string => {
-		return `Literal(${this.value},${this.start},${this.end})`;
-	};
-
-	whereIs(offset: number): Literal | Message | null {
-		if (this.start < offset && offset < this.end) {
-			return this;
-		} else {
-			return null;
-		}
-	}
-}
-
 export class MessageList {
 	constructor(
 		public isReference: boolean,
 		public indentation: number,
-		public messages: Map<Key, Message>,
-		public metadata: Map<Key, Metadata>
+		public indentationCharacter: string,
+		public messageEntries: MessageEntry[],
+		public metadataEntries: MessageEntry[],
 	) { }
 
 	getPlaceholders(): Literal[] {
-		return Array.from(this.messages.values()).flatMap((message) => message.getPlaceholders());
+		return this.messageEntries.flatMap((messageEntry) => (messageEntry.message as Message).getPlaceholders());
 	}
 
-	getMessageAt(offset: number): Message | Literal | Metadata | null {
-		const partsContaining = Array.from(this.messages.entries()).filter(([literal, message]) => literal.whereIs(offset) !== null || message.whereIs(offset) !== null);
-		if (partsContaining.length > 0) {
-			return partsContaining[0][0].whereIs(offset) ?? partsContaining[0][1].whereIs(offset);
-		} else {
-			return null;
-		}
+	getIndent(add?: number): string {
+		return this.indentationCharacter.repeat((this.indentation ?? 0) + (add ?? 0));
+	}
+
+	getMessageAt(offset: number): Message | Metadata | null {
+		return [...this.messageEntries, ...this.metadataEntries]
+			.flatMap((entry) => [entry.key, entry.message])
+			.map((message) => message.whereIs(offset))
+			.find((whereIs) => whereIs !== null) ?? null;
+	}
+}
+
+export class MessageEntry {
+	constructor(
+		public key: Key,
+		public message: Message | Metadata,
+	) {
+		message.parent = this;
 	}
 }
 
 export class Metadata {
 	constructor(
-		public placeholders: Literal[]
+		public placeholders: PlaceholderMetadata[],
+		public metadataEnd: number,
+		public lastPlaceholderEnd?: number,
+		public parent?: MessageEntry,
 	) { }
+
+	whereIs(offset: number): Message | null {
+		return this.placeholders
+			.map((placeholder) => placeholder.whereIs(offset))
+			.find((whereIs) => whereIs !== null) ?? null;
+	}
 }
 
 export abstract class Message {
 	constructor(
 		public start: number,
 		public end: number,
+		public parent?: Message | MessageEntry,
 	) { }
 
 	abstract getPlaceholders(): Literal[];
 
-	abstract whereIs(offset: number): Message | Literal | null;
+	abstract whereIs(offset: number): Message | null;
+}
+
+export class Literal extends Message {
+	constructor(
+		public value: string,
+		public start: number,
+		public end: number,
+		parent?: Message | MessageEntry,
+	) {
+		super(start, end, parent);
+	}
+
+	public toString = (): string => {
+		return `Literal(${this.value},${this.start},${this.end})`;
+	};
+
+	whereIs(offset: number): Message | null {
+		if (this.start < offset && offset < this.end) {
+			return this;
+		} else {
+			return null;
+		}
+	}
+
+	getPlaceholders(): Literal[] {
+		return [];
+	}
 }
 
 export class Key extends Literal {
+	getPlaceholders(): Literal[] {
+		throw new Error('Method not implemented.');
+	}
 	endOfMessage?: number;
 
 	constructor(
 		value: string,
 		start: number,
 		end: number,
+		parent?: Message | MessageEntry,
 	) {
-		super(value, start, end);
+		super(value, start, end, parent);
 	}
 }
 
@@ -251,45 +289,26 @@ export class CombinedMessage extends Message {
 	constructor(
 		start: number,
 		end: number,
-		public parts: Message[]
+		public parts: Message[],
+		parent?: Message | MessageEntry,
 	) {
-		super(start, end);
+		super(start, end, parent);
+		for (const part of parts) {
+			part.parent = this;
+		}
 	}
 
 	getPlaceholders(): Literal[] {
 		return this.parts.flatMap((value) => value.getPlaceholders());
 	}
 
-	whereIs(offset: number): Literal | Message | null {
+	whereIs(offset: number): Message | null {
 		if (this.start < offset && offset < this.end) {
-			const partsContaining = this.parts.filter((part) => part.whereIs(offset) !== null);
-			if (partsContaining.length > 0) {
-				return partsContaining[0].whereIs(offset);
-			} else {
-				return null;
-			}
+			return this.parts
+				.map((part) => part.whereIs(offset))
+				.find((whereIs) => whereIs !== null) ?? this;
 		}
 		return null;
-	}
-}
-
-export class StringMessage extends Message {
-	constructor(
-		public value: Literal,
-	) {
-		super(value.start, value.end);
-	}
-
-	getPlaceholders(): Literal[] {
-		return [];
-	}
-
-	whereIs(offset: number): Literal | Message | null {
-		if (this.start < offset && offset < this.end) {
-			return this;
-		} else {
-			return null;
-		}
 	}
 }
 
@@ -299,44 +318,79 @@ export class ComplexMessage extends Message {
 		end: number,
 		public argument: Literal,
 		public complexType: Literal,
-		public messages: Map<Literal, Message>
+		public messages: Map<Literal, Message>,
+		parent?: Message | MessageEntry,
 	) {
-		super(start, end);
+		super(start, end, parent);
+		argument.parent = this;
+		complexType.parent = this;
+		for (const [_, message] of messages) {
+			message.parent = this;
+		}
 	}
 
 	getPlaceholders(): Literal[] {
 		return [this.argument, ...Array.from(this.messages.values()).flatMap((value) => value.getPlaceholders())];
 	}
 
-	whereIs(offset: number): Literal | Message | null {
+	whereIs(offset: number): Message | null {
 		if (this.start < offset && offset < this.end) {
-			const partsContaining = Array.from(this.messages.entries()).filter(([literal, message]) => literal.whereIs(offset) !== null || message.whereIs(offset) !== null);
-			if (partsContaining.length > 0) {
-				return partsContaining[0][0].whereIs(offset) ?? partsContaining[0][1].whereIs(offset);
-			} else {
-				return null;
-			}
+			return Array.from(this.messages.entries())
+				.flatMap(([literal, message]) => [literal, message])
+				.map((part) => part.whereIs(offset))
+				.find((whereIs) => whereIs !== null) ?? null;
 		}
 		return null;
 	}
 }
 
-export class Placeholder extends Message {
+export class Placeholder extends Literal {
 	constructor(
-		public placeholder: Literal
+		value: string,
+		start: number,
+		end: number,
+		parent?: Message | MessageEntry,
 	) {
-		super(placeholder.start, placeholder.end);
+		super(value, start, end, parent);
 	}
 
 	getPlaceholders(): Literal[] {
-		return [this.placeholder];
+		return [this];
 	}
 
-	whereIs(offset: number): Literal | Message | null {
+	whereIs(offset: number): Message | null {
 		if (this.start < offset && offset < this.end) {
 			return this;
 		} else {
 			return null;
 		}
+	}
+}
+export class PlaceholderMetadata extends Message {
+	constructor(
+		public value: string,
+		public start: number,
+		public end: number,
+		parent?: Message | MessageEntry,
+	) {
+		super(start, end, parent);
+	}
+
+	objectEnd: number | undefined;
+
+	public toString = (): string => {
+		return `Literal(${this.value},${this.start},${this.end})`;
+	};
+
+	whereIs(offset: number): Message | null {
+		if (this.start < offset && offset < this.end) {
+			return this;
+		} else {
+			return null;
+		}
+	}
+
+	getPlaceholders(): Literal[] {
+		return [];
 	}
 }

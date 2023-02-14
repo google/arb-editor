@@ -19,7 +19,7 @@ import { EOL } from 'os';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
-import { Key, Parser } from '../../messageParser';
+import { CombinedMessage, Key, Parser } from '../../messageParser';
 import { Diagnostics } from '../../diagnose';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
@@ -77,22 +77,20 @@ suite('Extension Test Suite', async () => {
 		}`;
 		const [messages, errors] = new Parser().parse(document);
 		assert.equal(errors.length, 0);
-		assert.equal(messages.messages.size, 6);
-		assert.equal(messages.metadata.size, 5);
+		assert.equal(messages.messageEntries.length, 6);
+		assert.equal(messages.metadataEntries.length, 5);
 	});
 
-	test("Test quickfix", async () => {
+	test("Test quickfix for missing Metadata", async () => {
 		const editor = await getEditor('quickfix.arb');
 
 		// Parse original
 		const [messageList, errors] = new Parser().parse(editor.document.getText());
 		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
-		assert.equal(errors.length, 0);
-		assert.equal(messageList.messages.size, 1);
-		assert.equal(diagnostics.length, 1);
+		const numberOfDiagnostics = diagnostics.length;
 
-		// Apply fix
-		const messageKey = messageList.messages.keys().next().value as Key;
+		// Apply fix for missing metadata
+		const messageKey = messageList.messageEntries[0].key as Key;
 		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
 			editor.document.uri,
 			new vscode.Range(
@@ -104,9 +102,33 @@ suite('Extension Test Suite', async () => {
 		// Parse fixed
 		const [newMessageList, newErrors] = new Parser().parse(editor.document.getText());
 		const newDiagnostics = new Diagnostics().diagnose(editor, newMessageList, newErrors);
-		assert.equal(newErrors.length, 0);
-		assert.equal(newMessageList.messages.size, 1);
-		assert.equal(newDiagnostics.length, 0);
+		assert.equal(newDiagnostics.length, numberOfDiagnostics - 1);
+	});
+
+	test("Test quickfix for placeholder without metadata", async () => {
+		const editor = await getEditor('quickfix2.arb');
+
+		// Parse original
+		const [messageList, errors] = new Parser().parse(editor.document.getText());
+		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
+		const numberOfDiagnostics = diagnostics.length;
+
+		// Apply fix for placeholder not defined in metadata
+		const message = messageList.messageEntries[0].message as CombinedMessage;
+		const placeholder = message.getPlaceholders()[0];
+
+		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
+			editor.document.uri,
+			new vscode.Range(
+				editor.document.positionAt(placeholder.start + 1),
+				editor.document.positionAt(placeholder.end - 1)
+			));
+		await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+
+		// Parse fixed
+		const [newMessageList, newErrors] = new Parser().parse(editor.document.getText());
+		const newDiagnostics = new Diagnostics().diagnose(editor, newMessageList, newErrors);
+		assert.equal(newDiagnostics.length, numberOfDiagnostics - 1);
 	});
 });
 

@@ -41,24 +41,24 @@ export class Diagnostics {
 			showErrorAt(error.start, error.end, error.value, vscode.DiagnosticSeverity.Error, DiagnosticCode.mismatchedBrackets);
 		}
 
-		for (const [key, message] of messageList?.messages) {
-			const hasMetadata = Array.from(messageList.metadata.keys()).filter((literal) => literal.value === ('@' + key.value));
+		for (const entry of messageList?.messageEntries) {
+			const hasMetadata = messageList.metadataEntries.filter((metadataEntry) => metadataEntry.key.value === ('@' + entry.key.value));
 			let metadata: Metadata | null = null;
 			if (hasMetadata.length > 0) {
-				metadata = messageList.metadata.get(hasMetadata[0])!;
+				metadata = hasMetadata[0].message as Metadata;
 			}
 
-			validateKey(key, metadata, messageList.isReference);
-			validateMessage(message, metadata);
-			validateMetadata(message, metadata);
+			validateKey(entry.key, metadata, messageList.isReference);
+			validateMessage(entry.message as Message, metadata);
+			validateMetadata(entry.message as Message, metadata);
 		}
 
-		for (const [key, metadata] of messageList?.metadata) {
-			const hasMessage = Array.from(messageList.messages.keys()).filter((literal) => '@' + literal.value === key.value);
+		for (const metadataKey of messageList?.metadataEntries.map((entry) => entry.key)) {
+			const hasMessage = messageList.messageEntries.filter((messageEntry) => '@' + messageEntry.key.value === metadataKey.value);
 			if (hasMessage.length === 0) {
-				showErrorAt(key.start,
-					key.end,
-					`Metadata for an undefined key. Add a message key with the name "${key.value.substring(1)}".`,
+				showErrorAt(metadataKey.start,
+					metadataKey.end,
+					`Metadata for an undefined key. Add a message key with the name "${metadataKey.value.substring(1)}".`,
 					vscode.DiagnosticSeverity.Error,
 					DiagnosticCode.metadataForMissingKey,
 				);
@@ -93,7 +93,7 @@ export class Diagnostics {
 					validateMessage(submessage, metadata);
 				}
 			} else if (message instanceof Placeholder) {
-				validatePlaceholder(message.placeholder, metadata);
+				validatePlaceholder(message, metadata);
 			} else if (message instanceof ComplexMessage) {
 				validatePlaceholder(message.argument, metadata);
 
