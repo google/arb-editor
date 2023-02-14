@@ -47,14 +47,14 @@ export class Decorator {
 			[pluralDecoration, []],
 		]);
 
-		for (const [key, message] of messageList?.messages) {
-			const hasMetadata = Array.from(messageList.metadata.keys()).filter((literal) => literal.value === ('@' + key.value));
+		for (const entry of messageList?.messageEntries) {
+			const hasMetadata = messageList.metadataEntries.filter((metadataEntry) => metadataEntry.key.value === ('@' + entry.key.value));
 			let metadata: Metadata | null = null;
 			if (hasMetadata.length > 0) {
-				metadata = messageList.metadata.get(hasMetadata[0])!;
+				metadata = hasMetadata[0].message as Metadata;
 			}
-			decorateMessage(message, metadata);
-			decorateMetadata(message, metadata);
+			decorateMessage(entry.message as Message, metadata);
+			decorateMetadata(entry.message as Message, metadata);
 		}
 
 
@@ -68,7 +68,7 @@ export class Decorator {
 					decorateMessage(submessage, metadata);
 				}
 			} else if (message instanceof Placeholder) {
-				decorateAt(message.placeholder.start, message.placeholder.end, placeholderDecoration);
+				decorateAt(message.start, message.end, placeholderDecoration);
 			} else if (message instanceof ComplexMessage) {
 				decorateAt(message.argument.start, message.argument.end, placeholderDecoration);
 				let complexDecoration = selectDecoration;

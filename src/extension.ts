@@ -25,7 +25,7 @@ import * as vscode from 'vscode';
 import { CodeActions } from './codeactions';
 import { Decorator as Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
-import { MessageList, Parser, StringMessage } from './messageParser';
+import { Literal, MessageList, Parser } from './messageParser';
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
 
@@ -65,7 +65,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			{
 				provideCompletionItems(document, position, token, context) {
 					const messageTypeAtCursor = commonMessageList?.getMessageAt(document.offsetAt(position));
-					if (messageTypeAtCursor instanceof StringMessage) {
+					if (messageTypeAtCursor instanceof Literal) {
 						return completionsStringInline;
 					} else {
 						return completions;
@@ -97,7 +97,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		function parseAndDecorate(): MessageList {
 			let [messageList, errors] = parser.parse(editor!.document.getText())!;
 			decorator.decorate(editor!, messageList);
-			diagnostics.diagnose(editor!, messageList, errors);quickfixes.update(messageList);
+			diagnostics.diagnose(editor!, messageList, errors);
+			quickfixes.update(messageList);
 			return messageList;
 		}
 	}

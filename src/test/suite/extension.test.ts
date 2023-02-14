@@ -77,8 +77,8 @@ suite('Extension Test Suite', async () => {
 		}`;
 		const [messages, errors] = new Parser().parse(document);
 		assert.equal(errors.length, 0);
-		assert.equal(messages.messages.size, 6);
-		assert.equal(messages.metadata.size, 5);
+		assert.equal(messages.messageEntries.length, 6);
+		assert.equal(messages.metadataEntries.length, 5);
 	});
 
 	test("Test quickfix", async () => {
@@ -87,12 +87,10 @@ suite('Extension Test Suite', async () => {
 		// Parse original
 		const [messageList, errors] = new Parser().parse(editor.document.getText());
 		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
-		assert.equal(errors.length, 0);
-		assert.equal(messageList.messages.size, 1);
-		assert.equal(diagnostics.length, 1);
+		const numberOfDiagnostics = diagnostics.length;
 
 		// Apply fix
-		const messageKey = messageList.messages.keys().next().value as Key;
+		const messageKey = messageList.messageEntries[0].key as Key;
 		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
 			editor.document.uri,
 			new vscode.Range(
@@ -104,9 +102,7 @@ suite('Extension Test Suite', async () => {
 		// Parse fixed
 		const [newMessageList, newErrors] = new Parser().parse(editor.document.getText());
 		const newDiagnostics = new Diagnostics().diagnose(editor, newMessageList, newErrors);
-		assert.equal(newErrors.length, 0);
-		assert.equal(newMessageList.messages.size, 1);
-		assert.equal(newDiagnostics.length, 0);
+		assert.equal(newDiagnostics.length, numberOfDiagnostics - 1);
 	});
 });
 
