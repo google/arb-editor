@@ -82,13 +82,9 @@ export class Parser {
 				}
 			},
 			onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
-
 				nestingLevel--;
 				if (placeholderLevel !== null && nestingLevel === placeholderLevel + 1) {
 					definedPlaceholders[definedPlaceholders.length - 1].objectEnd = offset + length;
-				}
-				if ((placeholderLevel !== null && nestingLevel === placeholderLevel)) {
-					console.log(`Object end at ${offset}`);
 				}
 				if (placeholderLevel !== null && nestingLevel === placeholderLevel) {
 					totalPlaceholderEnd = offset + length - 1;
