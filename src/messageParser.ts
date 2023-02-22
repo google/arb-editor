@@ -82,9 +82,13 @@ export class Parser {
 				}
 			},
 			onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
+
 				nestingLevel--;
 				if (placeholderLevel !== null && nestingLevel === placeholderLevel + 1) {
 					definedPlaceholders[definedPlaceholders.length - 1].objectEnd = offset + length;
+				}
+				if ((placeholderLevel !== null && nestingLevel === placeholderLevel)) {
+					console.log(`Object end at ${offset}`);
 				}
 				if (placeholderLevel !== null && nestingLevel === placeholderLevel) {
 					totalPlaceholderEnd = offset + length - 1;
@@ -92,6 +96,7 @@ export class Parser {
 				if (metadataLevel !== null && nestingLevel <= metadataLevel) {
 					metadataLevel = -1;
 					metadata.push(new MessageEntry(metadataKey!, new Metadata([...definedPlaceholders], offset, totalPlaceholderEnd ?? undefined)));
+					totalPlaceholderEnd = null;
 					definedPlaceholders = [];
 					metadataKey = null;
 				}
@@ -195,7 +200,7 @@ export class MessageList {
 	}
 
 	getIndent(add?: number): string {
-		return this.indentationCharacter.repeat((this.indentation ?? 0) + (add ?? 0));
+		return this.indentationCharacter.repeat((this.indentation ?? 0) * (add ?? 1));
 	}
 
 	getMessageAt(offset: number): Message | Metadata | null {
