@@ -106,37 +106,51 @@ suite('Extension Test Suite', async () => {
 	});
 
 	test("Test quickfix for placeholder without metadata", async () => {
-		const editor = await getEditor('quickfix2.arb');
+		const fileToGolden = [
+			['quickfix2.arb', 'quickfix2.golden'],
+			['quickfix2_spaces.arb', 'quickfix2_spaces.golden'],
+		];
+		for (const [testFile, goldenFile] of fileToGolden) {
 
-		// Parse original
-		const [messageList, errors] = new Parser().parse(editor.document.getText());
-		const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
-		const numberOfDiagnostics = diagnostics.length;
+			const editor = await getEditor(testFile);
 
-		// Apply fix for placeholder not defined in metadata
-		const message = messageList.messageEntries[0].message as CombinedMessage;
-		const placeholder = message.getPlaceholders()[0];
+			// Parse original
+			const [messageList, _] = new Parser().parse(editor.document.getText());
 
-		const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
-			editor.document.uri,
-			new vscode.Range(
-				editor.document.positionAt(placeholder.start + 1),
-				editor.document.positionAt(placeholder.end - 1)
-			));
-		await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+			// Apply fix for placeholder not defined in metadata
+			const message = messageList.messageEntries[0].message as CombinedMessage;
+			const placeholder = message.getPlaceholders()[0];
 
-		// Parse fixed
-		const [newMessageList, newErrors] = new Parser().parse(editor.document.getText());
-		const newDiagnostics = new Diagnostics().diagnose(editor, newMessageList, newErrors);
-		assert.equal(newDiagnostics.length, numberOfDiagnostics - 1);
+			const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
+				editor.document.uri,
+				new vscode.Range(
+					editor.document.positionAt(placeholder.start + 1),
+					editor.document.positionAt(placeholder.end - 1)
+				));
+			await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+
+			// Compare with golden
+
+			if (process.env.UPDATE_GOLDENS) {
+				console.warn('Updating golden test.');
+
+				// Run ```
+				// UPDATE_GOLDENS=1 npm test
+				// ``` to regenerate the golden test
+				await regenerateGolden(editor.document.getText(), goldenFile);
+			} else {
+				const goldenEditor = await getEditor(goldenFile);
+				assert.equal(editor.document.getText(), goldenEditor.document.getText());
+			}
+		}
 	});
 });
 
 const testFolderLocation: string = "/../../../src/test/";
 
-async function regenerateGolden(contentWithAnnotations: string, goldenFilename: string) {
+async function regenerateGolden(newContent: string, goldenFilename: string) {
 	const uri = vscode.Uri.file(path.join(__dirname, testFolderLocation, goldenFilename));
-	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(contentWithAnnotations));
+	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent));
 }
 
 async function buildContentWithAnnotations(filename: string) {
