@@ -46,7 +46,7 @@ export class CodeActions implements vscode.CodeActionProvider {
 
 		const fix = new vscode.CodeAction(`Add metadata for key '${messageKey?.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
-		fix.edit.insert(document.uri, document.positionAt(messageKey?.endOfMessage ?? 0), `,\n${this.messageList?.getIndent()}"@${messageKey?.value}" : {}`);
+		fix.edit.insert(document.uri, document.positionAt(messageKey?.endOfMessage ?? 0), `,\n${this.messageList?.getIndent()}"@${messageKey?.value}": {}`);
 		return fix;
 	}
 
@@ -68,16 +68,16 @@ export class CodeActions implements vscode.CodeActionProvider {
 				fix.edit.insert(
 					document.uri,
 					document.positionAt(lastPlaceholderEnd!),
-					`,\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}`
+					`,\n${this.messageList!.getIndent(3)}"${placeholder?.value}": {}`
 				);
 			} else if (metadata.lastPlaceholderEnd) {
 				fix.edit.insert(
 					document.uri,
 					document.positionAt(metadata.lastPlaceholderEnd),
-					`\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(1)}`
+					`\n${this.messageList!.getIndent(3)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(2)}`
 				);
 			} else {
-				const insertable = `\n${this.messageList!.getIndent(1)}"placeholders": {\n${this.messageList!.getIndent(2)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(1)}}\n${this.messageList!.getIndent()}`;
+				const insertable = `\n${this.messageList!.getIndent(2)}"placeholders": {\n${this.messageList!.getIndent(3)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(2)}}\n${this.messageList!.getIndent()}`;
 				fix.edit.insert(document.uri, document.positionAt(metadata.metadataEnd), insertable);
 			}
 			return fix;

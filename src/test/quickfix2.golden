@@ -1,0 +1,9 @@
+{
+	"@@locale": "en",
+	"helloAndWelcome2": "Welcome {firstName}!",
+	"@helloAndWelcome2": {
+		"placeholders": {
+			"firstName": {}
+		}
+	}
+}
