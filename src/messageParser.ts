@@ -185,8 +185,8 @@ function matchCurlyBrackets(value: string): XRegExp.MatchRecursiveValueNameMatch
 export class MessageList {
 	constructor(
 		public isReference: boolean,
-		public indentation: number,
-		public indentationCharacter: string,
+		public indentationCount: number, // The number of indentation characters used for indenting, for example 2 spaces or 1 tab
+		public indentationCharacter: string, // The indentation character used, most commonly either a space or a tab
 		public messageEntries: MessageEntry[],
 		public metadataEntries: MessageEntry[],
 	) { }
@@ -195,8 +195,8 @@ export class MessageList {
 		return this.messageEntries.flatMap((messageEntry) => (messageEntry.message as Message).getPlaceholders());
 	}
 
-	getIndent(add?: number): string {
-		return this.indentationCharacter.repeat((this.indentation ?? 0) * (add ?? 1));
+	getIndent(indentLevel?: number): string {
+		return this.indentationCharacter.repeat((this.indentationCount ?? 0) * (indentLevel ?? 1));
 	}
 
 	getMessageAt(offset: number): Message | Metadata | null {
