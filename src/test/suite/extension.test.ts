@@ -81,27 +81,24 @@ suite('Extension Test Suite', async () => {
 		assert.equal(messages.metadataEntries.length, 5);
 	});
 
-	test("Test quickfix for missing Metadata", async () => {
-		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden');
+	test("Test quickfix for missing Metadata", async () => await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden'));
 
-		function getFirstKey(messageList: MessageList) {
-			return messageList.messageEntries[0].key as Key;
-		}
-	});
+	test("Test quickfix for placeholder without metadata with tabs", async () => await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden'));
 
-	test("Test quickfix for placeholder without metadata", async () => {
-		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden');
-		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden');
-
-		function getPlaceholder(messageList: MessageList) {
-			const message = messageList.messageEntries[0].message as CombinedMessage;
-			const entry = message.getPlaceholders()[0];
-			return entry;
-		}
-	});
+	test("Test quickfix for placeholder without metadata with spaces", async () => await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden'));
 });
 
 const testFolderLocation: string = "/../../../src/test/";
+
+function getFirstKey(messageList: MessageList) {
+	return messageList.messageEntries[0].key as Key;
+}
+
+function getPlaceholder(messageList: MessageList) {
+	const message = messageList.messageEntries[0].message as CombinedMessage;
+	const entry = message.getPlaceholders()[0];
+	return entry;
+}
 
 async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string) {
 	const editor = await getEditor(testFile);
