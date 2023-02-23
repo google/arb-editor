@@ -90,13 +90,8 @@ suite('Extension Test Suite', async () => {
 	});
 
 	test("Test quickfix for placeholder without metadata", async () => {
-		const fileToGolden = [
-			['quickfix2.arb', 'quickfix2.golden'],
-			['quickfix2_spaces.arb', 'quickfix2_spaces.golden'],
-		];
-		for (const [testFile, goldenFile] of fileToGolden) {
-			await testFixAgainstGolden(testFile, getPlaceholder, goldenFile);
-		}
+		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden');
+		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden');
 
 		function getPlaceholder(messageList: MessageList) {
 			const message = messageList.messageEntries[0].message as CombinedMessage;
