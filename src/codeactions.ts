@@ -46,7 +46,7 @@ export class CodeActions implements vscode.CodeActionProvider {
 
 		const fix = new vscode.CodeAction(`Add metadata for key '${messageKey?.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
-		fix.edit.insert(document.uri, document.positionAt(messageKey?.endOfMessage ?? 0), `,\n${this.messageList?.getIndent()}"@${messageKey?.value}" : {}`);
+		fix.edit.insert(document.uri, document.positionAt(messageKey?.endOfMessage ?? 0), `,\n${this.messageList?.getIndent()}"@${messageKey?.value}": {}`);
 		return fix;
 	}
 
