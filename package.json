@@ -3,7 +3,7 @@
   "publisher": "Google",
   "displayName": "ARB Editor",
   "description": "Editor for Application Resource Bundle files, used for localization.",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "engines": {
     "vscode": "^1.72.2"
   },
