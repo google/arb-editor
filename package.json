@@ -23,7 +23,7 @@
   "activationEvents": [
     "onLanguage:json"
   ],
-	"icon": "media/logo.png",
+  "icon": "media/logo.png",
   "main": "./out/extension.js",
   "contributes": {
     "jsonValidation": [
@@ -64,7 +64,7 @@
     "@types/vscode": "^1.72.2",
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
-    "@vscode/test-electron": "^2.2.0",
+    "@vscode/test-electron": "^2.3.3",
     "eslint": "^8.26.0",
     "glob": "^8.0.3",
     "mocha": "^10.1.0",
