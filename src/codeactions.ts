@@ -52,6 +52,9 @@ export class CodeActions implements vscode.CodeActionProvider {
 
 	private createPlaceholder(document: vscode.TextDocument, range: vscode.Range | vscode.Selection): vscode.CodeAction | undefined {
 		const placeholder = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Placeholder | undefined;
+		if (!placeholder) {
+			return;
+		}
 		var parent = placeholder?.parent;
 		while (!(parent instanceof MessageEntry)) {
 			parent = parent?.parent;
