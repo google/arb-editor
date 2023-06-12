@@ -26,7 +26,7 @@ async function main() {
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 		// Download VS Code, unzip it and run the integration test
 		await runTests({
-			version: '1.78.1',
+			version: '1.78.1', //TODO(mosuem): Switch to head after https://github.com/microsoft/vscode/issues/184687 is resolved.
 			extensionDevelopmentPath,
 			extensionTestsPath,
 		});
