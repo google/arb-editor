@@ -25,9 +25,13 @@ async function main() {
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 		// Download VS Code, unzip it and run the integration test
-		await runTests({ extensionDevelopmentPath, extensionTestsPath });
+		await runTests({
+			version: '1.78.1', //TODO(mosuem): Switch to head after https://github.com/microsoft/vscode/issues/184687 is resolved.
+			extensionDevelopmentPath,
+			extensionTestsPath,
+		});
 	} catch (err) {
-		console.error('Failed to run tests');
+		console.error(`Failed to run tests ${err}`);
 		process.exit(1);
 	}
 }
