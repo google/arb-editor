@@ -174,12 +174,53 @@ export class Parser {
 		return [new MessageList(isReference, indentation ?? 0, indentationCharacter ?? ' ', messages, metadata), errors];
 	}
 }
-function matchCurlyBrackets(value: string): XRegExp.MatchRecursiveValueNameMatch[] {
-	return XRegExp.matchRecursive(value, '\\{', '\\}', 'g', {
-		valueNames: ['outside', 'leftBracket', 'content', 'rightBracket'],
-		escapeChar: '\'',
-		unbalanced: 'error'
-	});
+
+function matchCurlyBrackets(v: string): XRegExp.MatchRecursiveValueNameMatch[] {
+	const unescaped = getUnescapedRegions(v);
+	var values: XRegExp.MatchRecursiveValueNameMatch[] = [];
+	for (var region of unescaped) {
+		const newLocal = XRegExp.matchRecursive(v.substring(region[0], region[1]), '\\{', '\\}', 'g', {
+			valueNames: ['outside', 'leftBracket', 'content', 'rightBracket'],
+			unbalanced: 'error'
+		});
+		values.push(...newLocal);
+	}
+	return values;
+}
+
+export function getUnescapedRegions(expression: string): [number, number][] {
+	const unEscapedRegions: [number, number][] = [];
+
+	var unEscapedRegionEdge: number | null;
+	unEscapedRegionEdge = 0;
+	for (let index = 0; index < expression.length; index++) {
+		const char = expression[index];
+		if (char === "\'") {
+			if (index + 1 < expression.length && expression[index + 1] === "\'") {
+				index++;
+			} else if (unEscapedRegionEdge === null) {
+				// We are just exiting an escaped region
+				unEscapedRegionEdge = index + 1;
+			} else {
+				// We are just entering an escaped region
+				if (unEscapedRegionEdge < index) {
+					unEscapedRegions.push([unEscapedRegionEdge, index]);
+				}
+				unEscapedRegionEdge = null;
+			}
+		}
+	}
+	if (unEscapedRegionEdge !== null) {
+		if (unEscapedRegionEdge < expression.length) {
+			unEscapedRegions.push([unEscapedRegionEdge, expression.length]);
+		}
+	} else {
+		// Disbling lint to have consistent behavior with `MatchRecursiveValueNameMatch`, which also throws a string.
+		// eslint-disable-next-line no-throw-literal
+		throw 'Error: Unbalanced escape quotes. To escape a single quote \', prefix it with another single quote.';
+	}
+
+	return unEscapedRegions;
 }
 
 export class MessageList {
