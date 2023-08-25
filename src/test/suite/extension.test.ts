@@ -19,7 +19,7 @@ import { EOL } from 'os';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
-import { CombinedMessage, Key, Literal, MessageList, Parser } from '../../messageParser';
+import { CombinedMessage, Key, Literal, MessageList, Parser, getUnescapedRegions } from '../../messageParser';
 import { Diagnostics } from '../../diagnose';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
@@ -86,6 +86,15 @@ suite('Extension Test Suite', async () => {
 	test("Test quickfix for placeholder without metadata with tabs", async () => await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden'));
 
 	test("Test quickfix for placeholder without metadata with spaces", async () => await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden'));
+
+	test("Test finding unescaped regions", async () => {
+		assert.deepEqual(getUnescapedRegions("Test"), [[0, 4]]);
+		assert.deepEqual(getUnescapedRegions("Te''st"), [[0, 6]]);
+		assert.deepEqual(getUnescapedRegions("Te'some text'st"), [[0, 2], [13, 15]]);
+		assert.deepEqual(getUnescapedRegions("Te'some text'st and 'another'"), [[0, 2], [13, 20]]);
+		assert.deepEqual(getUnescapedRegions("'some text'st and 'another'"), [[11, 18]]);
+		assert.deepEqual(getUnescapedRegions("Te''''st"), [[0, 8]]);
+	});
 });
 
 const testFolderLocation: string = "/../../../src/test/";

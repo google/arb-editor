@@ -17,6 +17,10 @@
              ^^^^^^^^^[decoration]placeholder
         }
     },
+    "escaped": "Your pa'{'ssword",
+    "unescaped": "Your pa'ssword",
+                  ^^^^^^^^^^^^^^[Error]:"Error: Unbalanced escape quotes. To escape a single quote ', prefix it with another single quote."
+    "singlequote": "Your pa''ssword",
     "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",
                             ^^^^^[decoration]placeholder
                                                         ^^^^^^^^^^^^^[decoration]placeholder
@@ -41,8 +45,8 @@
              ^^^^^^^^^^^[Warning]:"The placeholder is defined in the metadata, but not in the message."
         }
     },
-    "pageHomeBirthday": "Today is {sex, sele{ct, male{his b'{irthday} female{her birthday} other{their birthday}}.",
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 9"
+    "pageHomeBirthday": "Today is {sex, sele{ct, male{his b{irthday} female{her birthday} other{their birthday}}.",
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 9"
     "@pageHomeBirthday": {
      ^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "pageHomeBirthday"."
         "description": "Birthday message on the Home screen",
