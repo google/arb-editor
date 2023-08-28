@@ -31,7 +31,7 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
-		compareGolden(contentWithAnnotations, 'testarb.annotated');
+		await compareGolden(contentWithAnnotations, 'testarb.annotated');
 	});
 
 	test("A rough parser test, as the real test will be done by the golden.", async () => {
