@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 // Copyright 2022 Google LLC
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +27,8 @@ import { CodeActions } from './codeactions';
 import { Decorator as Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { Literal, MessageList, Parser } from './messageParser';
+import YAML = require('yaml');
+import fs = require('fs');
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
 
@@ -37,6 +40,27 @@ export async function activate(context: vscode.ExtensionContext) {
 	const parser = new Parser();
 	const quickfixes = new CodeActions();
 	let commonMessageList: MessageList | undefined;
+	const workspacePaths = vscode.workspace.workspaceFolders?.map((v) => v.uri.path);
+
+	var l10nOptions: L10nYaml | undefined;
+
+	const watcher = watchL10nYaml();
+	if (watcher) {
+		l10nOptions = parseYaml(path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, 'l10n.yaml'));
+	}
+
+	watcher?.onDidCreate((uri) => {
+		l10nOptions = parseYaml(uri.fsPath);
+		handleFile(vscode.window.activeTextEditor);
+	});
+	watcher?.onDidChange((uri) => {
+		l10nOptions = parseYaml(uri.fsPath);
+		handleFile(vscode.window.activeTextEditor);
+	});
+	watcher?.onDidDelete((uri) => {
+		l10nOptions = parseYaml(uri.fsPath);
+		handleFile(vscode.window.activeTextEditor);
+	});
 
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => handleFile(editor), null, context.subscriptions));
@@ -95,7 +119,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		function parseAndDecorate(): MessageList {
-			let [messageList, errors] = parser.parse(editor!.document.getText())!;
+			let [messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
 			decorator.decorate(editor!, messageList);
 			diagnostics.diagnose(editor!, messageList, errors);
 			quickfixes.update(messageList);
@@ -130,3 +154,38 @@ function getSnippets(snippetsJson: any): vscode.CompletionList {
 // This method is called when your extension is deactivated
 export function deactivate() { }
 
+function watchL10nYaml(): vscode.FileSystemWatcher | undefined {
+	const folder = vscode.workspace.workspaceFolders?.[0];
+	if (folder) {
+		return vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, 'l10n.yaml'));
+	}
+}
+
+function parseYaml(uri: string): L10nYaml | undefined {
+	if (!fs.existsSync(uri)) {
+		return;
+	}
+	const yaml = fs.readFileSync(uri, "utf8");
+	return YAML.parse(yaml) as L10nYaml;
+}
+
+export interface L10nYaml {
+	'arb-dir'?: string | undefined;
+	'output-dir'?: string | undefined;
+	'template-arb-file'?: string | undefined;
+	'output-localization-file'?: string | undefined;
+	'untranslated-messages-file'?: string | undefined;
+	'output-class'?: string | undefined;
+	'preferred-supported-locales'?: string | undefined;
+	'header'?: string | undefined;
+	'header-file'?: string | undefined;
+	'use-deferred-loading'?: boolean | undefined;
+	'gen-inputs-and-outputs-list'?: string | undefined;
+	'synthetic-package'?: string | undefined;
+	'project-dir'?: string | undefined;
+	'required-resource-attributes'?: boolean | undefined;
+	'nullable-getter'?: boolean | undefined;
+	'format'?: boolean | undefined;
+	'use-escaping'?: string | undefined;
+	'suppress-warnings'?: boolean | undefined;
+}

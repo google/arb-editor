@@ -3,6 +3,9 @@
 All notable changes to the "arbeditor" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [0.0.11] 
+
+- Fix [#41](https://github.com/google/arb-editor/issues/41).
 ## [0.0.10] 
 
 - Fix [#39](https://github.com/google/arb-editor/issues/39).
