@@ -31,17 +31,7 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
-		if (process.env.UPDATE_GOLDENS) {
-			console.warn('Updating golden test.');
-
-			// Run ```
-			// UPDATE_GOLDENS=1 npm test
-			// ``` to regenerate the golden test
-			await regenerateGolden(contentWithAnnotations, 'testarb.annotated');
-		} else {
-			const goldenEditor = await getEditor('testarb.annotated');
-			assert.equal(contentWithAnnotations, goldenEditor.document.getText());
-		}
+		compareGolden(contentWithAnnotations, 'testarb.annotated');
 	});
 
 	test("A rough parser test, as the real test will be done by the golden.", async () => {
@@ -127,16 +117,20 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
 
 	// Compare with golden
+	await compareGolden(editor.document.getText(), goldenFile);
+}
+
+async function compareGolden(text: string, goldenFile: string) {
 	if (process.env.UPDATE_GOLDENS) {
 		console.warn('Updating golden test.');
 
 		// Run ```
 		// UPDATE_GOLDENS=1 npm test
 		// ``` to regenerate the golden test
-		await regenerateGolden(editor.document.getText(), goldenFile);
+		await regenerateGolden(text, goldenFile);
 	} else {
 		const goldenEditor = await getEditor(goldenFile);
-		assert.equal(editor.document.getText(), goldenEditor.document.getText());
+		assert.equal(text, goldenEditor.document.getText());
 	}
 }
 
