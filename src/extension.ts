@@ -24,9 +24,10 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 import path = require('path');
 import * as vscode from 'vscode';
 import { CodeActions } from './codeactions';
-import { Decorator as Decorator } from './decorate';
+import { Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { Literal, MessageList, Parser } from './messageParser';
+import { locateL10nYaml } from './project';
 import YAML = require('yaml');
 import fs = require('fs');
 const snippetsJson = require("../snippets/snippets.json");
@@ -40,27 +41,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	const parser = new Parser();
 	const quickfixes = new CodeActions();
 	let commonMessageList: MessageList | undefined;
-	const workspacePaths = vscode.workspace.workspaceFolders?.map((v) => v.uri.path);
-
-	var l10nOptions: L10nYaml | undefined;
-
-	const watcher = watchL10nYaml();
-	if (watcher) {
-		l10nOptions = parseYaml(path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, 'l10n.yaml'));
-	}
-
-	watcher?.onDidCreate((uri) => {
-		l10nOptions = parseYaml(uri.fsPath);
-		handleFile(vscode.window.activeTextEditor);
-	});
-	watcher?.onDidChange((uri) => {
-		l10nOptions = parseYaml(uri.fsPath);
-		handleFile(vscode.window.activeTextEditor);
-	});
-	watcher?.onDidDelete((uri) => {
-		l10nOptions = parseYaml(uri.fsPath);
-		handleFile(vscode.window.activeTextEditor);
-	});
 
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => handleFile(editor), null, context.subscriptions));
@@ -107,6 +87,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		if (!editor || isNotArbFile(editor.document)) {
 			return;
 		}
+		var l10nYamlPath = locateL10nYaml(editor.document.uri.fsPath);
+		console.log(`${l10nYamlPath}`);
+		var l10nOptions: L10nYaml | undefined;
+		if (l10nYamlPath) {
+			l10nOptions = parseYaml(l10nYamlPath);
+		}
+
 		if (executeDelayed && pendingDecorations) {
 			clearTimeout(pendingDecorations);
 		}
@@ -153,13 +140,6 @@ function getSnippets(snippetsJson: any): vscode.CompletionList {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
-
-function watchL10nYaml(): vscode.FileSystemWatcher | undefined {
-	const folder = vscode.workspace.workspaceFolders?.[0];
-	if (folder) {
-		return vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, 'l10n.yaml'));
-	}
-}
 
 function parseYaml(uri: string): L10nYaml | undefined {
 	if (!fs.existsSync(uri)) {
