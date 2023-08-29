@@ -11,8 +11,10 @@ export function locateL10nYaml(folder: string): string | undefined {
 
     let dir = folder;
     while (dir !== path.dirname(dir)) {
-        if (hasPubspec(dir) || hasPackageMapFile(dir) || hasL10nYaml(dir)) {
+        if (hasL10nYaml(dir)) {
             return path.join(dir, "l10n.yaml");
+        } else if (hasPubspec(dir) || hasPackageMapFile(dir)) {
+            return undefined;
         }
         dir = path.dirname(dir);
     }
