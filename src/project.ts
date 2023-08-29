@@ -11,13 +11,21 @@ export function locateL10nYaml(folder: string): string | undefined {
 
     let dir = folder;
     while (dir !== path.dirname(dir)) {
-        if (hasL10nYaml(dir)) {
+        if (hasPubspec(dir) || hasPackageMapFile(dir) || hasL10nYaml(dir)) {
             return path.join(dir, "l10n.yaml");
         }
         dir = path.dirname(dir);
     }
 
     return undefined;
+}
+
+function hasPackageMapFile(folder: string): boolean {
+    return fs.existsSync(path.join(folder, ".dart_tool", "package_config.json")) || fs.existsSync(path.join(folder, ".packages"));
+}
+
+function hasPubspec(folder: string): boolean {
+    return fs.existsSync(path.join(folder, "pubspec.yaml"));
 }
 
 function hasL10nYaml(folder: string): boolean {
