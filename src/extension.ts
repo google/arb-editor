@@ -88,7 +88,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 		var l10nYamlPath = locateL10nYaml(editor.document.uri.fsPath);
-		console.log(`${l10nYamlPath}`);
 		var l10nOptions: L10nYaml | undefined;
 		if (l10nYamlPath) {
 			l10nOptions = parseYaml(l10nYamlPath);
