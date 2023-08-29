@@ -12,10 +12,11 @@
 
 import { JSONPath, visit } from 'jsonc-parser';
 import XRegExp = require('xregexp');
+import { L10nYaml } from './extension';
 
 export class Parser {
 
-	parse(document: string): [MessageList, Literal[]] {
+	parse(document: string, l10nOptions?: L10nYaml): [MessageList, Literal[]] {
 		let isReference: boolean = false;
 		const messages: MessageEntry[] = [];
 		const metadata: MessageEntry[] = [];
@@ -101,7 +102,7 @@ export class Parser {
 
 
 		function parseMessage(messageString: string, globalOffset: number, expectPlaceholder: boolean): Message {
-			const vals = matchCurlyBrackets(messageString);
+			const vals = matchCurlyBrackets(messageString, l10nOptions);
 
 			if (vals.length === 0) {
 				if (expectPlaceholder) {
@@ -146,7 +147,7 @@ export class Parser {
 				({ start, end } = trim(part.value, start, end));
 				const complexType = new Literal(part.value.substring(start, end), globalOffset + part.start + start + 1, globalOffset + part.start + end + 1);
 				start = secondComma + 1;
-				const bracketedValues = matchCurlyBrackets(part.value);
+				const bracketedValues = matchCurlyBrackets(part.value, l10nOptions);
 				for (const innerPart of bracketedValues) {
 					if (innerPart.name === 'content') {
 						end = innerPart.start - 1;
@@ -175,8 +176,8 @@ export class Parser {
 	}
 }
 
-function matchCurlyBrackets(v: string): XRegExp.MatchRecursiveValueNameMatch[] {
-	const unescaped = getUnescapedRegions(v);
+function matchCurlyBrackets(v: string, l10nOptions?: L10nYaml): XRegExp.MatchRecursiveValueNameMatch[] {
+	const unescaped = getUnescapedRegions(v, l10nOptions);
 	var values: XRegExp.MatchRecursiveValueNameMatch[] = [];
 	for (var region of unescaped) {
 		const newLocal = XRegExp.matchRecursive(v.substring(region[0], region[1]), '\\{', '\\}', 'g', {
@@ -188,8 +189,12 @@ function matchCurlyBrackets(v: string): XRegExp.MatchRecursiveValueNameMatch[] {
 	return values;
 }
 
-export function getUnescapedRegions(expression: string): [number, number][] {
+export function getUnescapedRegions(expression: string, l10nOptions?: L10nYaml): [number, number][] {
 	const unEscapedRegions: [number, number][] = [];
+
+	if (!(l10nOptions?.['use-escaping'] ?? true)) {
+		return [[0, expression.length]];
+	}
 
 	var unEscapedRegionEdge: number | null;
 	unEscapedRegionEdge = 0;

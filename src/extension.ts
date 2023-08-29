@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 // Copyright 2022 Google LLC
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +24,12 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 import path = require('path');
 import * as vscode from 'vscode';
 import { CodeActions } from './codeactions';
-import { Decorator as Decorator } from './decorate';
+import { Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { Literal, MessageList, Parser } from './messageParser';
+import { locateL10nYaml } from './project';
+import YAML = require('yaml');
+import fs = require('fs');
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
 
@@ -83,6 +87,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		if (!editor || isNotArbFile(editor.document)) {
 			return;
 		}
+		var l10nYamlPath = locateL10nYaml(editor.document.uri.fsPath);
+		var l10nOptions: L10nYaml | undefined;
+		if (l10nYamlPath) {
+			l10nOptions = parseYaml(l10nYamlPath);
+		}
+
 		if (executeDelayed && pendingDecorations) {
 			clearTimeout(pendingDecorations);
 		}
@@ -95,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		function parseAndDecorate(): MessageList {
-			let [messageList, errors] = parser.parse(editor!.document.getText())!;
+			let [messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
 			decorator.decorate(editor!, messageList);
 			diagnostics.diagnose(editor!, messageList, errors);
 			quickfixes.update(messageList);
@@ -130,3 +140,31 @@ function getSnippets(snippetsJson: any): vscode.CompletionList {
 // This method is called when your extension is deactivated
 export function deactivate() { }
 
+function parseYaml(uri: string): L10nYaml | undefined {
+	if (!fs.existsSync(uri)) {
+		return;
+	}
+	const yaml = fs.readFileSync(uri, "utf8");
+	return YAML.parse(yaml) as L10nYaml;
+}
+
+export interface L10nYaml {
+	'arb-dir'?: string | undefined;
+	'output-dir'?: string | undefined;
+	'template-arb-file'?: string | undefined;
+	'output-localization-file'?: string | undefined;
+	'untranslated-messages-file'?: string | undefined;
+	'output-class'?: string | undefined;
+	'preferred-supported-locales'?: string | undefined;
+	'header'?: string | undefined;
+	'header-file'?: string | undefined;
+	'use-deferred-loading'?: boolean | undefined;
+	'gen-inputs-and-outputs-list'?: string | undefined;
+	'synthetic-package'?: string | undefined;
+	'project-dir'?: string | undefined;
+	'required-resource-attributes'?: boolean | undefined;
+	'nullable-getter'?: boolean | undefined;
+	'format'?: boolean | undefined;
+	'use-escaping'?: string | undefined;
+	'suppress-warnings'?: boolean | undefined;
+}
