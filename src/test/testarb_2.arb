@@ -1,0 +1,11 @@
+{
+    "@@locale": "en",
+    "@@x-reference": false,
+    "appName": "Demo app",
+    "pageLog{inUsername": "Your username",
+    "@pageLoginUsername": {},
+    "pageLoginPassword": "Your password",
+    "@pageLoginPassword": {},
+    "pageHomeTitle": "Welcome {firstName}",
+    "escaped": "Your pa'{'ssword"
+}
