@@ -10,7 +10,7 @@
 // limitations under the License.
 'use strict';
 import * as vscode from 'vscode';
-import { CombinedMessage, ComplexMessage, Literal, Message, MessageEntry, MessageList, Metadata, Placeholder } from './messageParser';
+import { CombinedMessage, ComplexMessage, Key, Literal, Message, MessageEntry, MessageList, Metadata, Placeholder } from './messageParser';
 
 const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
@@ -25,6 +25,7 @@ export enum DiagnosticCode {
 	unknownICUMessageType,
 	placeholderWithoutMetadata,
 	missingPlaceholderWithMetadata,
+	missingMessagesFromTemplate,
 }
 
 export class Diagnostics {
@@ -41,6 +42,12 @@ export class Diagnostics {
 			showErrorAt(error.start, error.end, error.value, vscode.DiagnosticSeverity.Error, DiagnosticCode.mismatchedBrackets);
 		}
 
+		/// Validate messages, checking if
+		/// * The message has metadata defined,
+		/// * The key is a valid string,
+		/// * The ICU syntax is valid,
+		/// * The message has all its placeholders defined in the metadata,
+		/// * The placeholders in the metadata actually exist in the message.
 		for (const entry of messageList?.messageEntries) {
 			const hasMetadata = checkMetadataExistence(messageList, entry);
 			let metadata: Metadata | null = null;
@@ -58,6 +65,7 @@ export class Diagnostics {
 			validateMetadata(entry.message as Message, metadata);
 		}
 
+		/// Check if any metadata is defined for a message which doesn't exist.
 		for (const metadataKey of messageList?.metadataEntries.map((entry) => entry.key)) {
 			const hasMessage = messageList.messageEntries.filter((messageEntry) => '@' + messageEntry.key.value === metadataKey.value);
 			if (hasMessage.length === 0) {
@@ -68,6 +76,24 @@ export class Diagnostics {
 					DiagnosticCode.metadataForMissingKey,
 				);
 			}
+		}
+
+		/// Check if any messages are left out of the current file compared to the template.
+		if (templateMessageList) {
+			let missing: Key[] = [];
+			for (const entry of templateMessageList.messageEntries) {
+				if (!messageList.messageEntries.some((m) => m.key === entry.key)) {
+					missing.push(entry.key);
+				}
+			}
+
+			let messagesEnd = editor.document.offsetAt(editor.document.lineAt(editor.document.lineCount - 1).range.end);
+			showErrorAt(messagesEnd,
+				messagesEnd + 1,
+				`Missing messages from template: ${missing.map((key) => key.value).join(', ')}`,
+				vscode.DiagnosticSeverity.Warning,
+				DiagnosticCode.missingMessagesFromTemplate,
+			);
 		}
 
 		this.diagnostics.set(editor.document.uri, diagnosticsList);
