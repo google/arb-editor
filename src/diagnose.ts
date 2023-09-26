@@ -51,17 +51,18 @@ export class Diagnostics {
 		for (const entry of messageList?.messageEntries) {
 			const hasMetadata = checkMetadataExistence(messageList, entry);
 			let metadata: Metadata | null = null;
+			let templateMetadata: Metadata | null = null;
 			if (hasMetadata.length > 0) {
 				metadata = hasMetadata[0].message as Metadata;
 			} else if (templateMessageList) {
 				const hasTemplateMetadata = checkMetadataExistence(templateMessageList, entry);
 				if (hasTemplateMetadata.length > 0) {
-					metadata = hasTemplateMetadata[0].message as Metadata;
+					templateMetadata = hasTemplateMetadata[0].message as Metadata;
 				}
 			}
 
-			validateKey(entry.key, metadata, messageList.isReference);
-			validateMessage(entry.message as Message, metadata);
+			validateKey(entry.key, metadata ?? templateMetadata, messageList.isReference);
+			validateMessage(entry.message as Message, metadata ?? templateMetadata);
 			validateMetadata(entry.message as Message, metadata);
 		}
 
@@ -98,7 +99,7 @@ export class Diagnostics {
 
 		this.diagnostics.set(editor.document.uri, diagnosticsList);
 
-		function validateKey(key: Literal, metadata: Metadata | null, isReference: boolean) {
+		function validateKey(key: Literal, metadata: Metadata | null, isReference: boolean | undefined) {
 			if (keyNameRegex.exec(key.value) === null) {
 				showErrorAt(key.start,
 					key.end,
@@ -107,7 +108,7 @@ export class Diagnostics {
 					DiagnosticCode.invalidKey,
 				);
 			} else {
-				if (metadata === null && isReference) {
+				if (metadata === null && (isReference === undefined || isReference)) {
 					showErrorAt(key.start,
 						key.end,
 						`The message with key "${key.value}" does not have metadata defined.`,
