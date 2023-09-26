@@ -10,7 +10,7 @@
 // limitations under the License.
 'use strict';
 import * as vscode from 'vscode';
-import { CombinedMessage, ComplexMessage, Literal, Message, MessageEntry, MessageList, Metadata, Placeholder } from './messageParser';
+import { CombinedMessage, ComplexMessage, Literal, Message, MessageList, Metadata, Placeholder } from './messageParser';
 
 const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to translate to a (non-private) Dart variable
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
@@ -34,7 +34,7 @@ export class Diagnostics {
 		context?.subscriptions.push(this.diagnostics);
 	}
 
-	diagnose(editor: vscode.TextEditor, messageList: MessageList, errors: Literal[], templateMessageList: MessageList | undefined): vscode.Diagnostic[] {
+	diagnose(editor: vscode.TextEditor, messageList: MessageList, errors: Literal[]): vscode.Diagnostic[] {
 		let diagnosticsList: vscode.Diagnostic[] = [];
 
 		for (const error of errors) {
@@ -42,15 +42,10 @@ export class Diagnostics {
 		}
 
 		for (const entry of messageList?.messageEntries) {
-			const hasMetadata = checkMetadataExistence(messageList, entry);
+			const hasMetadata = messageList.metadataEntries.filter((metadataEntry) => metadataEntry.key.value === ('@' + entry.key.value));
 			let metadata: Metadata | null = null;
 			if (hasMetadata.length > 0) {
 				metadata = hasMetadata[0].message as Metadata;
-			} else if (templateMessageList) {
-				const hasTemplateMetadata = checkMetadataExistence(templateMessageList, entry);
-				if (hasTemplateMetadata.length > 0) {
-					metadata = hasTemplateMetadata[0].message as Metadata;
-				}
 			}
 
 			validateKey(entry.key, metadata, messageList.isReference);
@@ -171,7 +166,3 @@ export class Diagnostics {
 		return diagnosticsList;
 	}
 }
-function checkMetadataExistence(messageList: MessageList, entry: MessageEntry) {
-	return messageList.metadataEntries.filter((metadataEntry) => metadataEntry.key.value === ('@' + entry.key.value));
-}
-

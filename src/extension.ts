@@ -105,19 +105,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		function parseAndDecorate(): MessageList {
-			const templateFile = l10nOptions?.['template-arb-file'];
-			let templateMessageList: MessageList | undefined;
-			let templateErrors: Literal[] | undefined;
-			if (templateFile) {
-				const templatePath = path.join(path.dirname(l10nYamlPath!), templateFile);
-				if (templatePath !== editor!.document.uri.fsPath) {
-					const template = fs.readFileSync(templatePath, "utf8");
-					[templateMessageList, templateErrors] = parser.parse(template, l10nOptions)!;
-				}
-			}
 			let [messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
 			decorator.decorate(editor!, messageList);
-			diagnostics.diagnose(editor!, messageList, errors, templateMessageList);
+			diagnostics.diagnose(editor!, messageList, errors);
 			quickfixes.update(messageList);
 			return messageList;
 		}
