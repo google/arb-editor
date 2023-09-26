@@ -143,7 +143,7 @@ async function buildContentWithAnnotations(filename: string) {
 	const editor = await getEditor(filename);
 	const [messageList, errors] = new Parser().parse(editor.document.getText())!;
 	const decorations = new Decorator().decorate(editor, messageList);
-	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
+	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors, undefined);
 	const content = editor.document.getText();
 	const annotationsForLine = new Map<number, string[]>();
 	for (const entry of decorations.entries() ?? []) {
