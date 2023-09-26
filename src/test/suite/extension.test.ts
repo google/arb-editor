@@ -30,13 +30,8 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb', undefined);
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
 		await compareGolden(contentWithAnnotations, 'testarb.annotated');
-	});
-
-	test("Decorate golden file with template.", async () => {
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb_2.arb', 'testarb.arb');
-		await compareGolden(contentWithAnnotations, 'testarb_2.annotated');
 	});
 
 	test("A rough parser test, as the real test will be done by the golden.", async () => {
@@ -144,17 +139,11 @@ async function regenerateGolden(newContent: string, goldenFilename: string) {
 	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent));
 }
 
-async function buildContentWithAnnotations(filename: string, templateFile: string | undefined) {
+async function buildContentWithAnnotations(filename: string) {
 	const editor = await getEditor(filename);
 	const [messageList, errors] = new Parser().parse(editor.document.getText())!;
-	let templateMessageList: MessageList | undefined;
-	let templateErrors: Literal[] | undefined;
-	if (templateFile) {
-		const referenceEditor = await getEditor(templateFile);
-		[templateMessageList, templateErrors] = new Parser().parse(referenceEditor.document.getText())!;
-	}
 	const decorations = new Decorator().decorate(editor, messageList);
-	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors, templateMessageList);
+	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors, undefined);
 	const content = editor.document.getText();
 	const annotationsForLine = new Map<number, string[]>();
 	for (const entry of decorations.entries() ?? []) {

@@ -17,7 +17,7 @@ import { L10nYaml } from './extension';
 export class Parser {
 
 	parse(document: string, l10nOptions?: L10nYaml): [MessageList, Literal[]] {
-		let isReference: boolean | undefined;
+		let isReference: boolean = false;
 		const messages: MessageEntry[] = [];
 		const metadata: MessageEntry[] = [];
 
@@ -230,7 +230,7 @@ export function getUnescapedRegions(expression: string, l10nOptions?: L10nYaml):
 
 export class MessageList {
 	constructor(
-		public isReference: boolean | undefined,
+		public isReference: boolean,
 		public indentationCount: number, // The number of indentation characters used for indenting, for example 2 spaces or 1 tab
 		public indentationCharacter: string, // The indentation character used, most commonly either a space or a tab
 		public messageEntries: MessageEntry[],
