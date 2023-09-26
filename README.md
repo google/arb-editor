@@ -45,3 +45,8 @@ Escaping quotes can be turned off by including a `l10n.yaml` file with the line:
 ```yaml
 use-escaping: false
 ```
+
+To set a reference file, set `"@@x-reference": true` element in your `arb` file, or set a file to be the reference in the `l10n.yaml` using:
+```yaml
+template-arb-file: relative/path/to/template.arb
+```
