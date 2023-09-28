@@ -16,16 +16,16 @@ import { L10nYaml } from './extension';
 
 export class Parser {
 
-	parse(document: string, l10nOptions?: L10nYaml): [MessageList, Literal[]] {
-		let isReference: boolean | undefined;
+	parse(document: string, l10nOptions?: L10nYaml): [string|undefined, MessageList, Literal[]] {
+		let templatePath: string | undefined;
 		const messages: MessageEntry[] = [];
 		const metadata: MessageEntry[] = [];
 
 		let nestingLevel = 0;
-		let inReferenceTag = false;
+		let inTemplateTag = false;
 		let placeholderLevel: number | null = null;
 		let metadataLevel: number | null = null;
-		let metadataKey: Key | null = null;
+		let metadataKey: Key | null = null;	
 		let messageKey: Key | null = null;
 		let definedPlaceholders: PlaceholderMetadata[] = [];
 		let errors: Literal[] = [];
@@ -48,8 +48,8 @@ export class Parser {
 					if (isMetadata) {
 						const isGlobalMetadata = property.startsWith('@@');
 						if (isGlobalMetadata) {
-							if (property === '@@x-reference') {
-								inReferenceTag = true;
+							if (property === '@@x-template') {
+								inTemplateTag = true;
 							}
 						} else {
 							metadataKey = key;
@@ -64,9 +64,9 @@ export class Parser {
 				}
 			},
 			onLiteralValue: (value: any, offset: number) => {
-				if (inReferenceTag) {
-					isReference = (value === true);
-					inReferenceTag = false;
+				if (inTemplateTag) {
+					templatePath = value;
+					inTemplateTag = false;
 				} else if (nestingLevel === 1 && messageKey !== null) {
 					try {
 						var message = parseMessage(value, offset, false);
@@ -172,7 +172,7 @@ export class Parser {
 			}
 		}
 
-		return [new MessageList(isReference, indentation ?? 0, indentationCharacter ?? ' ', messages, metadata), errors];
+		return [templatePath, new MessageList(templatePath, indentation ?? 0, indentationCharacter ?? ' ', messages, metadata), errors];
 	}
 }
 
@@ -230,7 +230,7 @@ export function getUnescapedRegions(expression: string, l10nOptions?: L10nYaml):
 
 export class MessageList {
 	constructor(
-		public isReference: boolean | undefined,
+		public templatePath: string | undefined,
 		public indentationCount: number, // The number of indentation characters used for indenting, for example 2 spaces or 1 tab
 		public indentationCharacter: string, // The indentation character used, most commonly either a space or a tab
 		public messageEntries: MessageEntry[],

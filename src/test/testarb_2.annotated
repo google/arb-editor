@@ -1,6 +1,5 @@
 {
     "@@locale": "en",
-    "@@x-reference": false,
     "appName": "Demo app",
     "pageLog{inUsername": "Your username",
      ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores."

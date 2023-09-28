@@ -105,17 +105,31 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		function parseAndDecorate(): MessageList {
-			const templateFile = l10nOptions?.['template-arb-file'];
+			let templatePathFromOptions = l10nOptions?.['template-arb-file'];
 			let templateMessageList: MessageList | undefined;
 			let templateErrors: Literal[] | undefined;
-			if (templateFile) {
-				const templatePath = path.join(path.dirname(l10nYamlPath!), templateFile);
+			let [templatePathFromFile, messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
+			if (templatePathFromOptions || templatePathFromFile) {
+				let templatePath: string;
+				if (templatePathFromOptions) {
+					if (path.isAbsolute(templatePathFromOptions!)) {
+						templatePath = templatePathFromOptions!;
+					} else {
+						templatePath = path.join(path.dirname(l10nYamlPath!), templatePathFromOptions);
+					}
+				} else {
+					if (path.isAbsolute(templatePathFromFile!)) {
+						templatePath = templatePathFromFile!;
+					} else {
+						templatePath = path.join(path.dirname(editor?.document.uri.path!), templatePathFromFile!);
+					}
+				}
 				if (templatePath !== editor!.document.uri.fsPath) {
 					const template = fs.readFileSync(templatePath, "utf8");
-					[templateMessageList, templateErrors] = parser.parse(template, l10nOptions)!;
+					// TODO(mosuem): Allow chaining of template files.
+					[, templateMessageList, templateErrors] = parser.parse(template, l10nOptions)!;
 				}
 			}
-			let [messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
 			decorator.decorate(editor!, messageList);
 			diagnostics.diagnose(editor!, messageList, errors, templateMessageList);
 			quickfixes.update(messageList);

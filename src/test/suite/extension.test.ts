@@ -70,7 +70,7 @@ suite('Extension Test Suite', async () => {
 				}
 			}
 		}`;
-		const [messages, errors] = new Parser().parse(document);
+		const [, messages, errors] = new Parser().parse(document);
 		assert.equal(errors.length, 0);
 		assert.equal(messages.messageEntries.length, 6);
 		assert.equal(messages.metadataEntries.length, 5);
@@ -108,7 +108,7 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	const editor = await getEditor(testFile);
 
 	// Parse original
-	const [messageList, _] = new Parser().parse(editor.document.getText());
+	const [, messageList,] = new Parser().parse(editor.document.getText());
 
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
@@ -146,12 +146,12 @@ async function regenerateGolden(newContent: string, goldenFilename: string) {
 
 async function buildContentWithAnnotations(filename: string, templateFile: string | undefined) {
 	const editor = await getEditor(filename);
-	const [messageList, errors] = new Parser().parse(editor.document.getText())!;
+	const [, messageList, errors] = new Parser().parse(editor.document.getText())!;
 	let templateMessageList: MessageList | undefined;
 	let templateErrors: Literal[] | undefined;
 	if (templateFile) {
-		const referenceEditor = await getEditor(templateFile);
-		[templateMessageList, templateErrors] = new Parser().parse(referenceEditor.document.getText())!;
+		const templateEditor = await getEditor(templateFile);
+		[, templateMessageList, templateErrors] = new Parser().parse(templateEditor.document.getText())!;
 	}
 	const decorations = new Decorator().decorate(editor, messageList);
 	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors, templateMessageList);

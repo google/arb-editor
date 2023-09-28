@@ -61,7 +61,7 @@ export class Diagnostics {
 				}
 			}
 
-			validateKey(entry.key, metadata ?? templateMetadata, messageList.isReference);
+			validateKey(entry.key, metadata ?? templateMetadata);
 			validateMessage(entry.message as Message, metadata ?? templateMetadata);
 			validateMetadata(entry.message as Message, metadata);
 		}
@@ -99,7 +99,7 @@ export class Diagnostics {
 
 		this.diagnostics.set(editor.document.uri, diagnosticsList);
 
-		function validateKey(key: Literal, metadata: Metadata | null, isReference: boolean | undefined) {
+		function validateKey(key: Literal, metadata: Metadata | null) {
 			if (keyNameRegex.exec(key.value) === null) {
 				showErrorAt(key.start,
 					key.end,
@@ -108,7 +108,7 @@ export class Diagnostics {
 					DiagnosticCode.invalidKey,
 				);
 			} else {
-				if (metadata === null && (isReference === undefined || isReference)) {
+				if (metadata === null) {
 					showErrorAt(key.start,
 						key.end,
 						`The message with key "${key.value}" does not have metadata defined.`,
