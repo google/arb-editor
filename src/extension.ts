@@ -111,17 +111,17 @@ export async function activate(context: vscode.ExtensionContext) {
 			let [templatePathFromFile, messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
 			if (templatePathFromOptions || templatePathFromFile) {
 				let templatePath: string;
-				if (templatePathFromOptions) {
+				if (templatePathFromFile) {
+					if (path.isAbsolute(templatePathFromFile)) {
+						templatePath = templatePathFromFile;
+					} else {
+						templatePath = path.join(path.dirname(editor?.document.uri.path!), templatePathFromFile);
+					}
+				} else {
 					if (path.isAbsolute(templatePathFromOptions!)) {
 						templatePath = templatePathFromOptions!;
 					} else {
-						templatePath = path.join(path.dirname(l10nYamlPath!), templatePathFromOptions);
-					}
-				} else {
-					if (path.isAbsolute(templatePathFromFile!)) {
-						templatePath = templatePathFromFile!;
-					} else {
-						templatePath = path.join(path.dirname(editor?.document.uri.path!), templatePathFromFile!);
+						templatePath = path.join(path.dirname(l10nYamlPath!), templatePathFromOptions!);
 					}
 				}
 				if (templatePath !== editor!.document.uri.fsPath) {
