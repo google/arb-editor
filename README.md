@@ -12,7 +12,7 @@ An extension to help you in editing .arb files, used for localization of applica
 ```
 {
     "@@locale": "en",
-    "@@x-template": 'path/to/template.arb',
+    "@@x-template": "path/to/template.arb",
     "@@context": "HomePage",
     "helloAndWelcome": "Welcome {firstName} von {lastName}!",
     "@helloAndWelcome": {
