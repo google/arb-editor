@@ -1,5 +1,6 @@
 {
     "@@locale": "en",
+    "@@x-template": "testarb.arb",
     "appName": "Demo app",
     "pageLog{inUsername": "Your username",
     "@pageLoginUsername": {},
