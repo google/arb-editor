@@ -12,7 +12,7 @@ An extension to help you in editing .arb files, used for localization of applica
 ```
 {
     "@@locale": "en",
-    "@@x-reference": true,
+    "@@x-template": "path/to/template.arb",
     "@@context": "HomePage",
     "helloAndWelcome": "Welcome {firstName} von {lastName}!",
     "@helloAndWelcome": {
@@ -44,4 +44,13 @@ An extension to help you in editing .arb files, used for localization of applica
 Escaping quotes can be turned off by including a `l10n.yaml` file with the line:
 ```yaml
 use-escaping: false
+```
+
+To set a template file, either set the `@@x-template` element in your `arb` file
+```json
+"@@x-template": "path/to/template.arb"
+```
+or set a file to be the template in the `l10n.yaml` using:
+```yaml
+template-arb-file: path/to/template.arb
 ```

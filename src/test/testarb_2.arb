@@ -1,0 +1,11 @@
+{
+    "@@locale": "en",
+    "@@x-template": "testarb.arb",
+    "appName": "Demo app",
+    "pageLog{inUsername": "Your username",
+    "@pageLoginUsername": {},
+    "pageLoginPassword": "Your password",
+    "@pageLoginPassword": {},
+    "pageHomeTitle": "Welcome {firstName}",
+    "escaped": "Your pa'{'ssword"
+}

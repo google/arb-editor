@@ -30,8 +30,13 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb', undefined);
 		await compareGolden(contentWithAnnotations, 'testarb.annotated');
+	});
+
+	test("Decorate golden file with template.", async () => {
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb_2.arb', 'testarb.arb');
+		await compareGolden(contentWithAnnotations, 'testarb_2.annotated');
 	});
 
 	test("A rough parser test, as the real test will be done by the golden.", async () => {
@@ -65,7 +70,7 @@ suite('Extension Test Suite', async () => {
 				}
 			}
 		}`;
-		const [messages, errors] = new Parser().parse(document);
+		const [, messages, errors] = new Parser().parse(document);
 		assert.equal(errors.length, 0);
 		assert.equal(messages.messageEntries.length, 6);
 		assert.equal(messages.metadataEntries.length, 5);
@@ -103,7 +108,7 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	const editor = await getEditor(testFile);
 
 	// Parse original
-	const [messageList, _] = new Parser().parse(editor.document.getText());
+	const [, messageList,] = new Parser().parse(editor.document.getText());
 
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
@@ -139,11 +144,17 @@ async function regenerateGolden(newContent: string, goldenFilename: string) {
 	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent));
 }
 
-async function buildContentWithAnnotations(filename: string) {
+async function buildContentWithAnnotations(filename: string, templateFile: string | undefined) {
 	const editor = await getEditor(filename);
-	const [messageList, errors] = new Parser().parse(editor.document.getText())!;
+	const [, messageList, errors] = new Parser().parse(editor.document.getText())!;
+	let templateMessageList: MessageList | undefined;
+	let templateErrors: Literal[] | undefined;
+	if (templateFile) {
+		const templateEditor = await getEditor(templateFile);
+		[, templateMessageList, templateErrors] = new Parser().parse(templateEditor.document.getText())!;
+	}
 	const decorations = new Decorator().decorate(editor, messageList);
-	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors);
+	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors, templateMessageList);
 	const content = editor.document.getText();
 	const annotationsForLine = new Map<number, string[]>();
 	for (const entry of decorations.entries() ?? []) {

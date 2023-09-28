@@ -1,0 +1,17 @@
+{
+    "@@locale": "en",
+    "@@x-template": "testarb.arb",
+    "appName": "Demo app",
+     ^^^^^^^[Information]:"The message with key "appName" does not have metadata defined."
+    "pageLog{inUsername": "Your username",
+     ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores."
+    "@pageLoginUsername": {},
+     ^^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "pageLoginUsername"."
+    "pageLoginPassword": "Your password",
+    "@pageLoginPassword": {},
+    "pageHomeTitle": "Welcome {firstName}",
+                               ^^^^^^^^^[decoration]placeholder
+    "escaped": "Your pa'{'ssword"
+     ^^^^^^^[Information]:"The message with key "escaped" does not have metadata defined."
+}
+ [Warning]:"Missing messages from template: appName, pageLog{inUsername, pageLoginPassword, pageHomeTitle, escaped, singlequote, pageHomeInboxCount, commonVehicleType, pageHomeBalance"

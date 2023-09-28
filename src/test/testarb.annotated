@@ -1,7 +1,7 @@
 {
     "@@locale": "en",
-    "@@x-reference": false,
     "appName": "Demo app",
+     ^^^^^^^[Information]:"The message with key "appName" does not have metadata defined."
     "pageLog{inUsername": "Your username",
      ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores."
     "@pageLoginUsername": {},
@@ -18,9 +18,11 @@
         }
     },
     "escaped": "Your pa'{'ssword",
+     ^^^^^^^[Information]:"The message with key "escaped" does not have metadata defined."
     "unescaped": "Your pa'ssword",
                   ^^^^^^^^^^^^^^[Error]:"Error: Unbalanced escape quotes. To escape a single quote ', prefix it with another single quote."
     "singlequote": "Your pa''ssword",
+     ^^^^^^^^^^^[Information]:"The message with key "singlequote" does not have metadata defined."
     "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",
                             ^^^^^[decoration]placeholder
                                                         ^^^^^^^^^^^^^[decoration]placeholder
@@ -60,6 +62,7 @@
                                                                   ^^^^^^^^^[decoration]select
                                                                                                   ^^^^^[decoration]select
                                                                                                                         ^^^^^[decoration]select
+     ^^^^^^^^^^^^^^^^^[Information]:"The message with key "commonVehicleType" does not have metadata defined."
                            ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" not defined in the message metadata."
                                         ^^^^^^^[Error]:"Unknown ICU messagetype "se?lect""
     "@commonVeshicleType": {
