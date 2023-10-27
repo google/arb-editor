@@ -124,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
 						templatePath = path.join(path.dirname(l10nYamlPath!), templatePathFromOptions!);
 					}
 				}
-				if (templatePath !== editor!.document.uri.fsPath) {
+				if (templatePath !== editor!.document.uri.fsPath && fs.existsSync(templatePath)) {
 					const template = fs.readFileSync(templatePath, "utf8");
 					// TODO(mosuem): Allow chaining of template files.
 					[, templateMessageList, templateErrors] = parser.parse(template, l10nOptions)!;
