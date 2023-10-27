@@ -3,6 +3,9 @@
 All notable changes to the "arbeditor" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [0.0.13] 
+
+- Check for the existence of the l10n.yaml file before parsing it.
 ## [0.0.12] 
 
 - Fix [#43](https://github.com/google/arb-editor/issues/43).
