@@ -84,6 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	handleFile(vscode.window.activeTextEditor);
 
 	function handleFile(editor: vscode.TextEditor | undefined, executeDelayed: boolean = false) {
+		console.log(`handle file`);
 		if (!editor || isNotArbFile(editor.document)) {
 			return;
 		}
@@ -105,35 +106,54 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		function parseAndDecorate(): MessageList {
-			let templatePathFromOptions = l10nOptions?.['template-arb-file'];
-			let templateMessageList: MessageList | undefined;
+
 			let templateErrors: Literal[] | undefined;
 			let [templatePathFromFile, messageList, errors] = parser.parse(editor!.document.getText(), l10nOptions)!;
-			if (templatePathFromOptions || templatePathFromFile) {
-				let templatePath: string;
-				if (templatePathFromFile) {
-					if (path.isAbsolute(templatePathFromFile)) {
-						templatePath = templatePathFromFile;
-					} else {
-						templatePath = path.join(path.dirname(editor?.document.uri.path!), templatePathFromFile);
-					}
-				} else {
-					if (path.isAbsolute(templatePathFromOptions!)) {
-						templatePath = templatePathFromOptions!;
-					} else {
-						templatePath = path.join(path.dirname(l10nYamlPath!), templatePathFromOptions!);
-					}
-				}
-				if (templatePath !== editor!.document.uri.fsPath && fs.existsSync(templatePath)) {
-					const template = fs.readFileSync(templatePath, "utf8");
-					// TODO(mosuem): Allow chaining of template files.
-					[, templateMessageList, templateErrors] = parser.parse(template, l10nOptions)!;
-				}
-			}
+
+			let templateMessageList: MessageList | undefined = getTemplateMessages(templatePathFromFile, templateErrors);
+
 			decorator.decorate(editor!, messageList);
 			diagnostics.diagnose(editor!, messageList, errors, templateMessageList);
 			quickfixes.update(messageList);
 			return messageList;
+		}
+
+		function getTemplateMessages(templatePathFromFile: string | undefined, templateErrors: Literal[] | undefined) {
+			let templateFileFromOptions = l10nOptions?.['template-arb-file'] ?? 'app_en.arb';
+			let templatePath: string | undefined;
+			if (templatePathFromFile) {
+				const absolutePathFromFile = getAbsolutePath(templatePathFromFile);
+				if (fs.existsSync(absolutePathFromFile)) {
+					templatePath = absolutePathFromFile;
+				}
+			} else {
+				const l10nYamlDir = path.dirname(l10nYamlPath!);
+				let outputDir = getAbsolutePath(l10nOptions?.['arb-dir'] ?? 'lib/l10n/', l10nYamlDir);
+				const outputDirTemplatePath = path.join(outputDir, templateFileFromOptions);
+				const defaultTemplatePath = path.join(l10nYamlDir, templateFileFromOptions!);
+				if (fs.existsSync(outputDirTemplatePath)) {
+					templatePath = outputDirTemplatePath;
+				} else if (fs.existsSync(defaultTemplatePath)) {
+					templatePath = defaultTemplatePath;
+				}
+			}
+			let templateMessageList: MessageList | undefined;
+			if (templatePath && templatePath !== editor!.document.uri.fsPath) {
+				const template = fs.readFileSync(templatePath, "utf8");
+				// TODO(mosuem): Allow chaining of template files.
+				[, templateMessageList, templateErrors] = parser.parse(template, l10nOptions)!;
+			}
+			return templateMessageList;
+		}
+
+		function getAbsolutePath(relativeOrAbsolutePath: string, directory?: string) {
+			let absolutePath: string;
+			if (path.isAbsolute(relativeOrAbsolutePath)) {
+				absolutePath = relativeOrAbsolutePath;
+			} else {
+				absolutePath = path.join(directory ?? path.dirname(editor?.document.uri.path!), relativeOrAbsolutePath);
+			}
+			return absolutePath;
 		}
 	}
 }
