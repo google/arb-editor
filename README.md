@@ -54,3 +54,11 @@ or set a file to be the template in the `l10n.yaml` using:
 ```yaml
 template-arb-file: path/to/template.arb
 ```
+You can suppress specific diagnostics warnings by adding into `settings.json`:
+```json
+"arbEditor.suppressedWarnings": string | number[]
+```
+
+The accepted values are:
+- "all" - suppress all warnings
+- array of numbers - suppress specific warnings by their code (0 to 9)
