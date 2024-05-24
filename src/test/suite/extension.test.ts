@@ -80,18 +80,18 @@ suite('Extension Test Suite', async () => {
 	});
 
 	test("Test quickfix for missing Metadata", async () => {
-		await updateConfiguration([])
-		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden')
+		await updateConfiguration([]);
+		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden');
 	});
 
 	test("Test quickfix for placeholder without metadata with tabs", async () => {
-		await updateConfiguration([])
-		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden')
+		await updateConfiguration([]);
+		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden');
 	});
 
 	test("Test quickfix for placeholder without metadata with spaces", async () => {
 		await updateConfiguration([]);
-		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden')
+		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden');
 	});
 
 	test("Test finding unescaped regions", async () => {
