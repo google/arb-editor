@@ -36,6 +36,12 @@ export class Diagnostics {
 	}
 
 	diagnose(editor: vscode.TextEditor, messageList: MessageList, errors: Literal[], templateMessageList: MessageList | undefined): vscode.Diagnostic[] {
+		const suppressedWarnings: string | number[] = vscode.workspace.getConfiguration('arbEditor').get('suppressedWarnings') || [];
+		if (typeof suppressedWarnings === 'string' && suppressedWarnings === 'all') {
+			return [];
+		}
+		const suppressedWarningsArray = Array.isArray(suppressedWarnings) ? suppressedWarnings : [];
+
 		let diagnosticsList: vscode.Diagnostic[] = [];
 
 		for (const error of errors) {
@@ -189,6 +195,10 @@ export class Diagnostics {
 
 
 		function showErrorAt(start: number, end: number, errorMessage: string, severity: vscode.DiagnosticSeverity, code: DiagnosticCode) {
+			if (suppressedWarningsArray.includes(code)) {
+				return;
+			}
+
 			const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
 			const diagnostic = new vscode.Diagnostic(range, errorMessage, severity);
 			diagnostic.code = code;

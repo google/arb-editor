@@ -39,7 +39,18 @@
           "arb"
         ]
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "ARB Editor",
+      "properties": {
+        "arbEditor.suppressedWarnings": {
+            "type": ["string", "array"],
+            "default": false,
+            "description": "Suppress warnings in arbEditor."
+        }
+      }
+    }
   },
   "keywords": [
     "Flutter",
@@ -49,6 +60,7 @@
     "i18n",
     "internationalization"
   ],
+  
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

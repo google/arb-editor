@@ -30,16 +30,19 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
+		await updateConfiguration([]);
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb', undefined);
 		await compareGolden(contentWithAnnotations, 'testarb.annotated');
 	});
 
 	test("Decorate golden file with template.", async () => {
+		await updateConfiguration([]);
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb_2.arb', 'testarb.arb');
 		await compareGolden(contentWithAnnotations, 'testarb_2.annotated');
 	});
 
 	test("A rough parser test, as the real test will be done by the golden.", async () => {
+		await updateConfiguration([]);
 		const document = `{
 			"@@locale": "en",
 			"appName": "Demo app",
@@ -76,19 +79,76 @@ suite('Extension Test Suite', async () => {
 		assert.equal(messages.metadataEntries.length, 5);
 	});
 
-	test("Test quickfix for missing Metadata", async () => await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden'));
+	test("Test quickfix for missing Metadata", async () => {
+		await updateConfiguration([])
+		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden')
+	});
 
-	test("Test quickfix for placeholder without metadata with tabs", async () => await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden'));
+	test("Test quickfix for placeholder without metadata with tabs", async () => {
+		await updateConfiguration([])
+		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden')
+	});
 
-	test("Test quickfix for placeholder without metadata with spaces", async () => await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden'));
+	test("Test quickfix for placeholder without metadata with spaces", async () => {
+		await updateConfiguration([]);
+		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden')
+	});
 
 	test("Test finding unescaped regions", async () => {
+		await updateConfiguration([]);
 		assert.deepEqual(getUnescapedRegions("Test"), [[0, 4]]);
 		assert.deepEqual(getUnescapedRegions("Te''st"), [[0, 6]]);
 		assert.deepEqual(getUnescapedRegions("Te'some text'st"), [[0, 2], [13, 15]]);
 		assert.deepEqual(getUnescapedRegions("Te'some text'st and 'another'"), [[0, 2], [13, 20]]);
 		assert.deepEqual(getUnescapedRegions("'some text'st and 'another'"), [[11, 18]]);
 		assert.deepEqual(getUnescapedRegions("Te''''st"), [[0, 8]]);
+	});
+
+	test("Test suppressed all warnings", async () => {
+		await updateConfiguration('all');
+
+		const document = await getEditor('testarb.arb');
+
+		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
+
+		assert.equal(diagnosticsList.length, 0);
+	});
+
+	test("Test suppressed warning with code 3", async () => {
+		const id = 3;
+		await updateConfiguration([id]);
+		
+		const document = await getEditor('quickfix.arb');
+
+		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
+
+		assert.equal(diagnosticsList.every(item => item.code !== id), true);
+	});
+
+	test("Test suppressed warning with code 2, 3", async () => {
+		const ids = [2, 3];
+		await updateConfiguration(ids);
+		
+		const document = await getEditor('testarb_2.arb');
+
+		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
+
+		assert.equal(diagnosticsList.every(item => !ids.includes(item.code as number)), true);
+	});
+
+	test("Test suppressed warning with code 1", async () => {
+		const id = 1;
+		await updateConfiguration([id]);
+		
+		const document = await getEditor('testarb_2.arb');
+
+		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
+
+		assert.equal(diagnosticsList.every(item => item.code !== id), true);
 	});
 });
 
@@ -197,3 +257,8 @@ async function getEditor(filename: string) {
 	const editor = await vscode.window.showTextDocument(document);
 	return editor;
 }
+
+async function updateConfiguration(config: string | number[]) {
+	await vscode.workspace.getConfiguration().update("arbEditor.suppressedWarnings", config, vscode.ConfigurationTarget.Global);
+}
+
