@@ -56,9 +56,23 @@ template-arb-file: path/to/template.arb
 ```
 You can suppress specific diagnostics warnings by adding into `settings.json`:
 ```json
-"arbEditor.suppressedWarnings": string | number[]
+"arbEditor.suppressedWarnings": string | string[]
 ```
 
 The accepted values are:
-- "all" - suppress all warnings
-- array of numbers - suppress specific warnings by their code (0 to 9)
+- `"all"` - suppress all warnings
+- An array containings the warinings ids to be suppressed:
+```json
+[
+    "mismatched_brackets",
+    "metadata_for_missing_key",
+    "invalid_key",
+    "missing_metadata_for_key",
+    "invalid_placeholder",
+    "missing_other_in_icu",
+    "unknown_icu_message_type",
+    "placeholder_without_metadata",
+    "missing_placeholder_with_metadata",
+    "missing_messages_from_template",
+]
+```
