@@ -20,7 +20,7 @@ import { EOL } from 'os';
 import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
 import { CombinedMessage, Key, Literal, MessageList, Parser, getUnescapedRegions } from '../../messageParser';
-import { Diagnostics } from '../../diagnose';
+import { DiagnosticCode, Diagnostics } from '../../diagnose';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 	[placeholderDecoration, '[decoration]placeholder'],
@@ -30,19 +30,19 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb', undefined);
 		await compareGolden(contentWithAnnotations, 'testarb.annotated');
 	});
 
 	test("Decorate golden file with template.", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		const contentWithAnnotations = await buildContentWithAnnotations('testarb_2.arb', 'testarb.arb');
 		await compareGolden(contentWithAnnotations, 'testarb_2.annotated');
 	});
 
 	test("A rough parser test, as the real test will be done by the golden.", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		const document = `{
 			"@@locale": "en",
 			"appName": "Demo app",
@@ -80,22 +80,22 @@ suite('Extension Test Suite', async () => {
 	});
 
 	test("Test quickfix for missing Metadata", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden');
 	});
 
 	test("Test quickfix for placeholder without metadata with tabs", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden');
 	});
 
 	test("Test quickfix for placeholder without metadata with spaces", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden');
 	});
 
 	test("Test finding unescaped regions", async () => {
-		await updateConfiguration([]);
+		await updateConfiguration(null);
 		assert.deepEqual(getUnescapedRegions("Test"), [[0, 4]]);
 		assert.deepEqual(getUnescapedRegions("Te''st"), [[0, 6]]);
 		assert.deepEqual(getUnescapedRegions("Te'some text'st"), [[0, 2], [13, 15]]);
@@ -115,8 +115,8 @@ suite('Extension Test Suite', async () => {
 		assert.equal(diagnosticsList.length, 0);
 	});
 
-	test("Test suppressed warning with code 3", async () => {
-		const id = 3;
+	test("Test suppressed warning with id missing_metadata_for_key", async () => {
+		const id = DiagnosticCode.missingMetadataForKey;
 		await updateConfiguration([id]);
 		
 		const document = await getEditor('quickfix.arb');
@@ -127,8 +127,8 @@ suite('Extension Test Suite', async () => {
 		assert.equal(diagnosticsList.every(item => item.code !== id), true);
 	});
 
-	test("Test suppressed warning with code 2, 3", async () => {
-		const ids = [2, 3];
+	test("Test suppressed warning with id 'invalid_key', 'missing_metadata_for_key'", async () => {
+		const ids = [DiagnosticCode.invalidKey, DiagnosticCode.missingMetadataForKey];
 		await updateConfiguration(ids);
 		
 		const document = await getEditor('testarb_2.arb');
@@ -136,11 +136,11 @@ suite('Extension Test Suite', async () => {
 		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
 		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
 
-		assert.equal(diagnosticsList.every(item => !ids.includes(item.code as number)), true);
+		assert.equal(diagnosticsList.every(item => !ids.includes(item.code as DiagnosticCode)), true);
 	});
 
-	test("Test suppressed warning with code 1", async () => {
-		const id = 1;
+	test("Test suppressed warning with code 'metadata_for_missing_key'", async () => {
+		const id = DiagnosticCode.metadataForMissingKey;
 		await updateConfiguration([id]);
 		
 		const document = await getEditor('testarb_2.arb');
@@ -258,7 +258,12 @@ async function getEditor(filename: string) {
 	return editor;
 }
 
-async function updateConfiguration(config: string | number[]) {
+async function updateConfiguration(config: null | 'all' | DiagnosticCode[]) {
+	if (config === null) {
+		await vscode.workspace.getConfiguration().update("arbEditor.suppressedWarnings", undefined, vscode.ConfigurationTarget.Global);
+		return;
+	}
+
 	await vscode.workspace.getConfiguration().update("arbEditor.suppressedWarnings", config, vscode.ConfigurationTarget.Global);
 }
 
