@@ -45,9 +45,38 @@
       "title": "ARB Editor",
       "properties": {
         "arbEditor.suppressedWarnings": {
-            "type": ["string", "array"],
-            "default": false,
-            "description": "Suppress warnings in arbEditor."
+          "description": "Suppress warnings in ARB Editor.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["all"],
+              "description": "Suppress all warnings in arbEditor."
+            },
+            {
+              "type": "array",
+              "default": [],
+              "description": "Suppress specific warnings in arbEditor.",
+              "items": {
+                "type": "string",
+                "description": "The warnings to suppress.",
+                "minItems": 0,
+                "maxItems": 10,
+                "uniqueItems": true,
+                "enum": [
+                  "mismatched_brackets",
+                  "metadata_for_missing_key",
+                  "invalid_key",
+                  "missing_metadata_for_key",
+                  "invalid_placeholder",
+                  "missing_other_in_icu",
+                  "unknown_icu_message_type",
+                  "placeholder_without_metadata",
+                  "missing_placeholder_with_metadata",
+                  "missing_messages_from_template"
+                ]
+              }
+            }
+          ]
         }
       }
     }
