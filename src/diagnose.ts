@@ -16,16 +16,16 @@ const placeholderNameRegex = /^[a-zA-Z][a-zA-Z_$0-9]*$/; //Must be able to trans
 const keyNameRegex = /^[a-zA-Z][a-zA-Z_0-9]*$/; //Must be able to translate to a (non-private) Dart method
 
 export enum DiagnosticCode {
-	mismatchedBrackets,
-	metadataForMissingKey,
-	invalidKey,
-	missingMetadataForKey,
-	invalidPlaceholder,
-	missingOtherInICU,
-	unknownICUMessageType,
-	placeholderWithoutMetadata,
-	missingPlaceholderWithMetadata,
-	missingMessagesFromTemplate,
+	mismatchedBrackets = "mismatched_brackets",
+	metadataForMissingKey = "metadata_for_missing_key",
+	invalidKey = "invalid_key",
+	missingMetadataForKey = "missing_metadata_for_key",
+	invalidPlaceholder = "invalid_placeholder",
+	missingOtherInICU = "missing_other_in_icu",
+	unknownICUMessageType = "unknown_icu_message_type",
+	placeholderWithoutMetadata = "placeholder_without_metadata",
+	missingPlaceholderWithMetadata = "missing_placeholder_with_metadata",
+	missingMessagesFromTemplate = "missing_messages_from_template",
 }
 
 export class Diagnostics {
@@ -36,11 +36,10 @@ export class Diagnostics {
 	}
 
 	diagnose(editor: vscode.TextEditor, messageList: MessageList, errors: Literal[], templateMessageList: MessageList | undefined): vscode.Diagnostic[] {
-		const suppressedWarnings: string | number[] = vscode.workspace.getConfiguration('arbEditor').get('suppressedWarnings') || [];
-		if (typeof suppressedWarnings === 'string' && suppressedWarnings === 'all') {
+		const suppressedWarnings: 'all' | DiagnosticCode[] = vscode.workspace.getConfiguration('arbEditor').get('suppressedWarnings') || [];
+		if (suppressedWarnings === 'all') {
 			return [];
 		}
-		const suppressedWarningsArray = Array.isArray(suppressedWarnings) ? suppressedWarnings : [];
 
 		let diagnosticsList: vscode.Diagnostic[] = [];
 
@@ -195,7 +194,7 @@ export class Diagnostics {
 
 
 		function showErrorAt(start: number, end: number, errorMessage: string, severity: vscode.DiagnosticSeverity, code: DiagnosticCode) {
-			if (suppressedWarningsArray.includes(code)) {
+			if (suppressedWarnings.includes(code)) {
 				return;
 			}
 
