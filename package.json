@@ -39,7 +39,47 @@
           "arb"
         ]
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "ARB Editor",
+      "properties": {
+        "arbEditor.suppressedWarnings": {
+          "description": "Suppress warnings in ARB Editor.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["all"],
+              "description": "Suppress all warnings in arbEditor."
+            },
+            {
+              "type": "array",
+              "default": [],
+              "description": "Suppress specific warnings in arbEditor.",
+              "items": {
+                "type": "string",
+                "description": "The warnings to suppress.",
+                "minItems": 0,
+                "maxItems": 10,
+                "uniqueItems": true,
+                "enum": [
+                  "mismatched_brackets",
+                  "metadata_for_missing_key",
+                  "invalid_key",
+                  "missing_metadata_for_key",
+                  "invalid_placeholder",
+                  "missing_other_in_icu",
+                  "unknown_icu_message_type",
+                  "placeholder_without_metadata",
+                  "missing_placeholder_with_metadata",
+                  "missing_messages_from_template"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
   },
   "keywords": [
     "Flutter",
@@ -49,6 +89,7 @@
     "i18n",
     "internationalization"
   ],
+  
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -58,21 +99,21 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/glob": "^8.0.0",
-    "@types/mocha": "^10.0.0",
-    "@types/node": "16.x",
-    "@types/vscode": "^1.72.2",
-    "@typescript-eslint/eslint-plugin": "^5.42.0",
-    "@typescript-eslint/parser": "^5.42.0",
-    "@vscode/test-electron": "^2.3.3",
-    "eslint": "^8.26.0",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^16.18.97",
+    "@types/vscode": "^1.89.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "@vscode/test-electron": "^2.3.10",
+    "eslint": "^8.57.0",
     "glob": "^8.0.3",
-    "mocha": "^10.1.0",
-    "typescript": "^4.8.4"
+    "mocha": "^10.4.0",
+    "typescript": "^4.9.5"
   },
   "dependencies": {
-    "jsonc-parser": "^3.2.0",
+    "jsonc-parser": "^3.2.1",
     "xregexp": "^5.1.1",
-    "yaml": "^2.3.1"
+    "yaml": "^2.4.2"
   }
 }
