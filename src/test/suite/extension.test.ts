@@ -260,10 +260,10 @@ async function getEditor(filename: string) {
 
 async function updateConfiguration(config: null | 'all' | DiagnosticCode[]) {
 	if (config === null) {
-		await vscode.workspace.getConfiguration().update("arbEditor.suppressedWarnings", undefined, vscode.ConfigurationTarget.Global);
+		await vscode.workspace.getConfiguration().update("arb-editor.suppressedWarnings", undefined, vscode.ConfigurationTarget.Global);
 		return;
 	}
 
-	await vscode.workspace.getConfiguration().update("arbEditor.suppressedWarnings", config, vscode.ConfigurationTarget.Global);
+	await vscode.workspace.getConfiguration().update("arb-editor.suppressedWarnings", config, vscode.ConfigurationTarget.Global);
 }
 

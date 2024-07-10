@@ -36,7 +36,7 @@ export class Diagnostics {
 	}
 
 	diagnose(editor: vscode.TextEditor, messageList: MessageList, errors: Literal[], templateMessageList: MessageList | undefined): vscode.Diagnostic[] {
-		const suppressedWarnings: 'all' | DiagnosticCode[] = vscode.workspace.getConfiguration('arbEditor').get('suppressedWarnings') || [];
+		const suppressedWarnings: 'all' | DiagnosticCode[] = vscode.workspace.getConfiguration('arb-editor').get('suppressedWarnings') || [];
 		if (suppressedWarnings === 'all') {
 			this.diagnostics.set(editor.document.uri, []);
 			return [];

@@ -56,7 +56,7 @@ template-arb-file: path/to/template.arb
 ```
 You can suppress specific diagnostics warnings by adding into `settings.json`:
 ```json
-"arbEditor.suppressedWarnings": string | string[]
+"arb-editor.suppressedWarnings": string | string[]
 ```
 
 The accepted values are:
