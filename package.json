@@ -44,7 +44,7 @@
       "type": "object",
       "title": "ARB Editor",
       "properties": {
-        "arbEditor.suppressedWarnings": {
+        "arb-editor.suppressedWarnings": {
           "description": "Suppress warnings in ARB Editor.",
           "anyOf": [
             {
