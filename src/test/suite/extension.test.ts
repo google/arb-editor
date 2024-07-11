@@ -14,7 +14,6 @@
 import * as assert from 'assert';
 import path = require('path');
 import { TextEncoder } from 'util';
-import { EOL } from 'os';
 // You can import and use all API from the 'vscode' module
 // as well as import your extension to test it
 import * as vscode from 'vscode';
@@ -206,6 +205,7 @@ async function regenerateGolden(newContent: string, goldenFilename: string) {
 
 async function buildContentWithAnnotations(filename: string, templateFile: string | undefined) {
 	const editor = await getEditor(filename);
+	const editorEol = editor.document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
 	const [, messageList, errors] = new Parser().parse(editor.document.getText())!;
 	let templateMessageList: MessageList | undefined;
 	let templateErrors: Literal[] | undefined;
@@ -239,14 +239,14 @@ async function buildContentWithAnnotations(filename: string, templateFile: strin
 			annotationsForLine.set(lineNumber, [...(annotationsForLine.get(lineNumber) ?? []), annotation]);
 		}
 	}
-	const lines = content.split(EOL);
+	const lines = content.split(editorEol);
 	const numLines = lines.length;
 	for (let index = numLines; index > 0; index--) {
 		if (annotationsForLine.has(index)) {
 			lines.splice(index + 1, 0, ...annotationsForLine.get(index)!);
 		}
 	}
-	const contentWithAnnotations = lines.join(EOL);
+	const contentWithAnnotations = lines.join(editorEol);
 	return contentWithAnnotations;
 }
 
