@@ -78,6 +78,7 @@
                                                 "compactLong",
                                                 "currency",
                                                 "decimalPattern",
+                                                "decimalPatternDigits",
                                                 "decimalPercentPattern",
                                                 "percentPattern",
                                                 "scientificPattern",
