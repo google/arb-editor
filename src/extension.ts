@@ -105,6 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		function parseAndDecorate(): MessageList {
+			let templateRootFromOptions = l10nOptions?.['arb-dir'];
 			let templatePathFromOptions = l10nOptions?.['template-arb-file'];
 			let templateMessageList: MessageList | undefined;
 			let templateErrors: Literal[] | undefined;
@@ -120,6 +121,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				} else {
 					if (path.isAbsolute(templatePathFromOptions!)) {
 						templatePath = templatePathFromOptions!;
+					} else if(templateRootFromOptions) {
+						if(path.isAbsolute(templateRootFromOptions)) {
+							templatePath = path.join(templateRootFromOptions, templatePathFromOptions!);
+						} else {
+							templatePath = path.join(path.dirname(l10nYamlPath!), templateRootFromOptions, templatePathFromOptions!);
+						}
 					} else {
 						templatePath = path.join(path.dirname(l10nYamlPath!), templatePathFromOptions!);
 					}
