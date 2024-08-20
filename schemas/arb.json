@@ -117,10 +117,17 @@
                                             "description": "The formatters are the ones provided by the DateFormat class in Dart's package:intl."
                                         },
                                         "isCustomDateFormat": {
-                                            "type": "string",
-                                            "enum": [
-                                                "true",
-                                                "false"
+                                            "oneOf": [
+                                                {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "true",
+                                                        "false"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "boolean"
+                                                }
                                             ]
                                         },
                                         "example": {
@@ -142,8 +149,16 @@
                                             ],
                                             "properties": {
                                                 "isCustomDateFormat": {
-                                                    "type": "string",
-                                                    "const": "true"
+                                                    "oneOf": [
+                                                        {
+                                                            "type": "string",
+                                                            "const": "true"
+                                                        },
+                                                        {
+                                                            "type": "boolean",
+                                                            "const": true
+                                                        }
+                                                    ]
                                                 }
                                             }
                                         },
