@@ -1,0 +1,47 @@
+{
+    "@@locale": "en",
+    "@@x-template": "testarb.arb",
+    "appName": "Demo app",
+     ^^^^^^^[Information]:"The message with key "appName" does not have metadata defined."
+    "pageLog{inUsername": "Your username",
+     ^^^^^^^^^^^^^^^^^^[Error]:"Key "pageLog{inUsername" is not a valid message key. The key must start with a letter and contain only letters, numbers, or underscores."
+    "pageLoginPassword": "Your password",
+    "pageHomeTitle": "Welcome {firstName}",
+                               ^^^^^^^^^[decoration]placeholder
+    "escaped": "Your pa'{'ssword",
+     ^^^^^^^[Information]:"The message with key "escaped" does not have metadata defined."
+    "unescaped": "Your pa'ssword",
+                  ^^^^^^^^^^^^^^[Error]:"Error: Unbalanced escape quotes. To escape a single quote ', prefix it with another single quote."
+    "singlequote": "Your pa''ssword",
+     ^^^^^^^^^^^[Information]:"The message with key "singlequote" does not have metadata defined."
+    "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",
+                            ^^^^^[decoration]placeholder
+                                                        ^^^^^^^^^^^^^[decoration]placeholder
+                                                                                                                                                                                                  ^^^^^^[decoration]placeholder
+                                                                                                                                                                                                                                   ^^^^^[decoration]placeholder
+                                                                               ^^^^[decoration]select
+                                                                                           ^^^^^^^^[decoration]select
+                                                                                                                          ^^^^[decoration]select
+                                                                                                                                               ^^^^^[decoration]select
+                                           ^^^^[decoration]plural
+                                                                                                                                                                              ^^^[decoration]plural
+                                                                                                                                                                                                                   ^^^^^[decoration]plural
+                                                        ^^^^^^^^^^^^^[Error]:""vehicle;;Type" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
+                                                                                                                                                                                                  ^^^^^^[Warning]:"Placeholder "counts" not defined in the message metadata."
+    "pageHomeBirthday": "Today is {sex, sele{ct, male{his b{irthday} female{her birthday} other{their birthday}}.",
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 9"
+    "commonVehicleType": "{vehicleType, se?lect  , sedan  {Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+                           ^^^^^^^^^^^[decoration]placeholder
+                                                   ^^^^^[decoration]select
+                                                                  ^^^^^^^^^[decoration]select
+                                                                                                  ^^^^^[decoration]select
+                                                                                                                        ^^^^^[decoration]select
+     ^^^^^^^^^^^^^^^^^[Information]:"The message with key "commonVehicleType" does not have metadata defined."
+                           ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" not defined in the message metadata."
+                                        ^^^^^^^[Error]:"Unknown ICU messagetype "se?lect""
+    "pageHomeBalance": "Your balance at {am[ount} on {date2}"
+                                         ^^^^^^^[decoration]placeholder
+                                                      ^^^^^[decoration]placeholder
+                                         ^^^^^^^[Error]:""am[ount" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
+                                                      ^^^^^[Warning]:"Placeholder "date2" not defined in the message metadata."
+}

@@ -1,0 +1,15 @@
+{
+    "@@locale": "en",
+    "@@x-template": "testarb.arb",
+    "appName": "Demo app",
+    "pageLog{inUsername": "Your username",
+    "pageLoginPassword": "Your password",
+    "pageHomeTitle": "Welcome {firstName}",
+    "escaped": "Your pa'{'ssword",
+    "unescaped": "Your pa'ssword",
+    "singlequote": "Your pa''ssword",
+    "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",
+    "pageHomeBirthday": "Today is {sex, sele{ct, male{his b{irthday} female{her birthday} other{their birthday}}.",
+    "commonVehicleType": "{vehicleType, se?lect  , sedan  {Sedan} cabriolet{Solid roof cabriolet} truck{16 wheel truck} other{Other}}",
+    "pageHomeBalance": "Your balance at {am[ount} on {date2}"
+}
