@@ -52,8 +52,10 @@ To set a template file, either set the `@@x-template` element in your `arb` file
 ```
 or set a file to be the template in the `l10n.yaml` using:
 ```yaml
-template-arb-file: path/to/template.arb
+arb-dir: path/to
+template-arb-file: template.arb
 ```
+
 You can suppress specific diagnostics warnings by adding into `settings.json`:
 ```json
 "arb-editor.suppressedWarnings": string | string[]
