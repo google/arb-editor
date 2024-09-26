@@ -338,7 +338,7 @@
                 },
                 "comment":{
                     "type": "string",
-                    "description": "A comment on this resource. This is possibly "
+                    "description": "A comment on this resource. This is not intended to be sent to translators."
                 }
             },
             "description": "Metadata for a message.",
@@ -367,7 +367,7 @@
             "type": "string"
         },
         "@@comment": {
-            "description": "A top-level comment for this file.",
+            "description": "A top-level comment for this file. This is not intended to be sent to translators.",
             "type": "string"
         }
     },
