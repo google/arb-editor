@@ -86,18 +86,12 @@ export class Diagnostics {
 		}
 
 		/// Check if any messages are left out of the current file compared to the template.
-		if (templateMessageList) {
-			let missing: Key[] = [];
-			for (const entry of templateMessageList.messageEntries) {
-				if (!messageList.messageEntries.some((m) => m.key === entry.key)) {
-					missing.push(entry.key);
-				}
-			}
-
+		const missingMessages = listMissingMessages(messageList, templateMessageList);
+		if (missingMessages.length > 0) {
 			let messagesEnd = editor.document.offsetAt(editor.document.lineAt(editor.document.lineCount - 1).range.end);
 			showErrorAt(messagesEnd,
 				messagesEnd + 1,
-				`Missing messages from template: ${missing.map((key) => key.value).join(', ')}`,
+				`Missing messages from template: ${missingMessages.map((key) => key.value).join(', ')}`,
 				vscode.DiagnosticSeverity.Warning,
 				DiagnosticCode.missingMessagesFromTemplate,
 			);
@@ -210,5 +204,18 @@ export class Diagnostics {
 }
 function checkMetadataExistence(messageList: MessageList, entry: MessageEntry) {
 	return messageList.metadataEntries.filter((metadataEntry) => metadataEntry.key.value === ('@' + entry.key.value));
+}
+function listMissingMessages(messageList: MessageList, templateMessageList: MessageList | undefined): Key[] {
+	if (!templateMessageList) {
+		return [];
+	}
+	let missing: Key[] = [];
+	const messageKeys: Set<string> = new Set<string>(messageList.messageEntries.map(m => m.key.value));
+	for (const entry of templateMessageList.messageEntries) {
+		if (!messageKeys.has(entry.key.value)) {
+			missing.push(entry.key);
+		}
+	}
+	return missing;
 }
 
