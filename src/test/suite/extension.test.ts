@@ -44,7 +44,7 @@ suite('Extension Test Suite', async () => {
 
 	test("Decorate golden file with template that has no missing messages.", async () => {
 		await updateConfiguration(null);
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb_3.arb', 'testarb.arb');
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb_3.arb');
 		await compareGolden(contentWithAnnotations, 'testarb_3.annotated');
 	});
 
