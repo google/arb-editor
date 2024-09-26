@@ -177,6 +177,8 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
 
+	await new Promise(f => setTimeout(f, 250));
+
 	const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
 		editor.document.uri,
 		new vscode.Range(
