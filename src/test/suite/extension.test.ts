@@ -169,6 +169,10 @@ function getPlaceholder(messageList: MessageList) {
 }
 
 async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string, name: string) {
+	const ext = vscode.extensions.getExtension("Google.arb-editor");
+	await ext?.activate();
+	assert.ok(ext?.isActive);
+
 	const editor = await getEditor(testFile);
 
 	// Parse original
