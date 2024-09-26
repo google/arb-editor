@@ -52,6 +52,7 @@
     "@pageHomeBirthday": {
      ^^^^^^^^^^^^^^^^^[Error]:"Metadata for an undefined key. Add a message key with the name "pageHomeBirthday"."
         "description": "Birthday message on the Home screen",
+        "comment": "TODO: This message should be deleted at some point",
         "placeholders": {
             "sex": {}
         }
