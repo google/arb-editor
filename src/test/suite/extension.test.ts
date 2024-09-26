@@ -178,7 +178,7 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	const editor = await getEditor(testFile);
 
 	// Parse original
-	const [, messageList] = new Parser().parse(editor.document.getText());
+	const [, messageList,] = new Parser().parse(editor.document.getText());
 
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
