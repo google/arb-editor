@@ -26,6 +26,7 @@
     "pageHomeBirthday": "Today is {sex, sele{ct, male{his b{irthday} female{her birthday} other{their birthday}}.",
     "@pageHomeBirthday": {
         "description": "Birthday message on the Home screen",
+        "comment": "TODO: This message should be deleted at some point",
         "placeholders": {
             "sex": {}
         }
