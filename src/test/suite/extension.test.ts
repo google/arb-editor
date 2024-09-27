@@ -86,17 +86,17 @@ suite('Extension Test Suite', async () => {
 
 	test("Test quickfix for missing Metadata", async () => {
 		await updateConfiguration(null);
-		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden');
+		await testFixAgainstGolden('quickfix.arb', getFirstKey, 'quickfix.golden', "Add metadata for key 'helloAndWelcome2'");
 	});
 
 	test("Test quickfix for placeholder without metadata with tabs", async () => {
 		await updateConfiguration(null);
-		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden');
+		await testFixAgainstGolden('quickfix2.arb', getPlaceholder, 'quickfix2.golden', "Add metadata for placeholder 'firstName'");
 	});
 
 	test("Test quickfix for placeholder without metadata with spaces", async () => {
 		await updateConfiguration(null);
-		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden');
+		await testFixAgainstGolden('quickfix2_spaces.arb', getPlaceholder, 'quickfix2_spaces.golden', "Add metadata for placeholder 'firstName'");
 	});
 
 	test("Test finding unescaped regions", async () => {
@@ -123,7 +123,7 @@ suite('Extension Test Suite', async () => {
 	test("Test suppressed warning with id missing_metadata_for_key", async () => {
 		const id = DiagnosticCode.missingMetadataForKey;
 		await updateConfiguration([id]);
-		
+
 		const document = await getEditor('quickfix.arb');
 
 		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
@@ -135,7 +135,7 @@ suite('Extension Test Suite', async () => {
 	test("Test suppressed warning with id 'invalid_key', 'missing_metadata_for_key'", async () => {
 		const ids = [DiagnosticCode.invalidKey, DiagnosticCode.missingMetadataForKey];
 		await updateConfiguration(ids);
-		
+
 		const document = await getEditor('testarb_2.arb');
 
 		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
@@ -147,7 +147,7 @@ suite('Extension Test Suite', async () => {
 	test("Test suppressed warning with code 'metadata_for_missing_key'", async () => {
 		const id = DiagnosticCode.metadataForMissingKey;
 		await updateConfiguration([id]);
-		
+
 		const document = await getEditor('testarb_2.arb');
 
 		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
@@ -155,7 +155,7 @@ suite('Extension Test Suite', async () => {
 
 		assert.equal(diagnosticsList.every(item => item.code !== id), true);
 	});
-});
+}).timeout(10000);
 
 const testFolderLocation: string = "/../../../src/test/";
 
@@ -165,11 +165,16 @@ function getFirstKey(messageList: MessageList) {
 
 function getPlaceholder(messageList: MessageList) {
 	const message = messageList.messageEntries[0].message as CombinedMessage;
-	const entry = message.getPlaceholders()[0];
-	return entry;
+	return message.getPlaceholders()[0];
 }
 
-async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string) {
+async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string, name: string) {
+	console.log(`1st try: ${vscode.extensions.getExtension("Google.arb-editor")?.isActive}`);
+	// const ext = vscode.extensions.getExtension("Google.arb-editor");
+	// await ext?.activate();
+	// assert.ok(ext?.isActive);
+	console.log(`2nd try: ${vscode.extensions.getExtension("Google.arb-editor")?.isActive}`);
+
 	const editor = await getEditor(testFile);
 
 	// Parse original
@@ -178,13 +183,27 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
 
+	console.log(`Item: ${item}`);
+
 	const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
 		editor.document.uri,
 		new vscode.Range(
 			editor.document.positionAt(item.start + 1),
 			editor.document.positionAt(item.end - 1)
 		));
-	await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+
+
+	const actions2 = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
+		editor.document.uri,
+		new vscode.Range(
+			editor.document.positionAt(item.start + 1),
+			editor.document.positionAt(item.end - 1)
+		));
+
+	assert.equal(name, actions[0].title, `${actions.length} available actions: ${actions.map(action => action.title).join('\n')}, ${actions2.length} available actions: ${actions2.map(action => action.title).join('\n')}`);
+	const edit = actions[0].edit as vscode.WorkspaceEdit;
+
+	await vscode.workspace.applyEdit(edit);
 
 	// Compare with golden
 	await compareGolden(editor.document.getText(), goldenFile);
