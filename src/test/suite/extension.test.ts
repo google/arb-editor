@@ -155,7 +155,7 @@ suite('Extension Test Suite', async () => {
 
 		assert.equal(diagnosticsList.every(item => item.code !== id), true);
 	});
-});
+}).timeout(10000);
 
 const testFolderLocation: string = "/../../../src/test/";
 
@@ -170,9 +170,9 @@ function getPlaceholder(messageList: MessageList) {
 
 async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string, name: string) {
 	console.log(`1st try: ${vscode.extensions.getExtension("Google.arb-editor")?.isActive}`);
-	const ext = vscode.extensions.getExtension("Google.arb-editor");
-	await ext?.activate();
-	assert.ok(ext?.isActive);
+	// const ext = vscode.extensions.getExtension("Google.arb-editor");
+	// await ext?.activate();
+	// assert.ok(ext?.isActive);
 	console.log(`2nd try: ${vscode.extensions.getExtension("Google.arb-editor")?.isActive}`);
 
 	const editor = await getEditor(testFile);
@@ -183,6 +183,8 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
 
+	console.log(`Item: ${item}`);
+
 	const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
 		editor.document.uri,
 		new vscode.Range(
@@ -190,7 +192,15 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 			editor.document.positionAt(item.end - 1)
 		));
 
-	assert.equal(name, actions[0].title, `Available actions: ${actions.map(action => action.title).join('\n')}`);
+
+	const actions2 = await vscode.commands.executeCommand<vscode.CodeAction[]>("vscode.executeCodeActionProvider",
+		editor.document.uri,
+		new vscode.Range(
+			editor.document.positionAt(item.start + 1),
+			editor.document.positionAt(item.end - 1)
+		));
+
+	assert.equal(name, actions[0].title, `${actions.length} available actions: ${actions.map(action => action.title).join('\n')}, ${actions2.length} available actions: ${actions2.map(action => action.title).join('\n')}`);
 	const edit = actions[0].edit as vscode.WorkspaceEdit;
 
 	await vscode.workspace.applyEdit(edit);

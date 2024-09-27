@@ -26,6 +26,7 @@ export class CodeActions implements vscode.CodeActionProvider {
 	];
 
 	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
+		console.log(`Providing code actions for ${range.start} - ${range.end}`);
 		const diagnostics = context.diagnostics;
 
 		const newMetadataActions = diagnostics
@@ -35,7 +36,8 @@ export class CodeActions implements vscode.CodeActionProvider {
 		const undefinedPlaceholderActions = diagnostics
 			.filter(diagnostic => diagnostic.code === DiagnosticCode.placeholderWithoutMetadata)
 			.map(_ => this.createPlaceholder(document, range));
-
+		console.log(`newMetadataActions ${newMetadataActions}`);
+		console.log(`undefinedPlaceholderActions ${undefinedPlaceholderActions}`);
 		return [...newMetadataActions, ...undefinedPlaceholderActions]
 			.filter(codeAction => codeAction instanceof vscode.CodeAction)
 			.map(codeAction => codeAction as vscode.CodeAction);
