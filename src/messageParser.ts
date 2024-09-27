@@ -245,7 +245,7 @@ export class MessageList {
 		return this.indentationCharacter.repeat((this.indentationCount ?? 0) * (indentLevel ?? 1));
 	}
 
-	getMessageAt(offset: number): Message | Metadata | null {
+	getMessageAt(offset: number): Message | null {
 		return [...this.messageEntries, ...this.metadataEntries]
 			.flatMap((entry) => [entry.key, entry.message])
 			.map((message) => message.whereIs(offset))
@@ -304,7 +304,7 @@ export class Literal extends Message {
 	};
 
 	whereIs(offset: number): Message | null {
-		if (this.start < offset && offset < this.end) {
+		if (this.start <= offset && offset <= this.end) {
 			return this;
 		} else {
 			return null;
@@ -350,7 +350,7 @@ export class CombinedMessage extends Message {
 	}
 
 	whereIs(offset: number): Message | null {
-		if (this.start < offset && offset < this.end) {
+		if (this.start <= offset && offset <= this.end) {
 			return this.parts
 				.map((part) => part.whereIs(offset))
 				.find((whereIs) => whereIs !== null) ?? this;
@@ -381,7 +381,7 @@ export class ComplexMessage extends Message {
 	}
 
 	whereIs(offset: number): Message | null {
-		if (this.start < offset && offset < this.end) {
+		if (this.start <= offset && offset <= this.end) {
 			return Array.from(this.messages.entries())
 				.flatMap(([literal, message]) => [literal, message])
 				.map((part) => part.whereIs(offset))
@@ -406,7 +406,7 @@ export class Placeholder extends Literal {
 	}
 
 	whereIs(offset: number): Message | null {
-		if (this.start < offset && offset < this.end) {
+		if (this.start <= offset && offset <= this.end) {
 			return this;
 		} else {
 			return null;
@@ -430,7 +430,7 @@ export class PlaceholderMetadata extends Message {
 	};
 
 	whereIs(offset: number): Message | null {
-		if (this.start < offset && offset < this.end) {
+		if (this.start <= offset && offset <= this.end) {
 			return this;
 		} else {
 			return null;
