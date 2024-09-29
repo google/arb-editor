@@ -51,15 +51,19 @@ export class CodeActions implements vscode.CodeActionProvider {
 	}
 
 	private createPlaceholder(document: vscode.TextDocument, range: vscode.Range | vscode.Selection): vscode.CodeAction | undefined {
-		const placeholder = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Placeholder | undefined;
+		const offset = document.offsetAt(range.start);
+		const placeholder = this.messageList
+			?.getMessageAt(offset)
+			?.getPlaceholders()
+			?.find((p) => p.whereIs(offset) !== null);
 		if (!placeholder) {
 			return;
 		}
-		var parent = placeholder?.parent;
+		let parent = placeholder.parent;
 		while (!(parent instanceof MessageEntry)) {
 			parent = parent?.parent;
 		}
-		const fix = new vscode.CodeAction(`Add metadata for placeholder '${placeholder?.value}'`, vscode.CodeActionKind.QuickFix);
+		const fix = new vscode.CodeAction(`Add metadata for placeholder '${placeholder.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
 
 		const parentKey = (parent as MessageEntry).key;
@@ -71,16 +75,16 @@ export class CodeActions implements vscode.CodeActionProvider {
 				fix.edit.insert(
 					document.uri,
 					document.positionAt(lastPlaceholderEnd!),
-					`,\n${this.messageList!.getIndent(3)}"${placeholder?.value}": {}`
+					`,\n${this.messageList!.getIndent(3)}"${placeholder.value}": {}`
 				);
 			} else if (metadata.lastPlaceholderEnd) {
 				fix.edit.insert(
 					document.uri,
 					document.positionAt(metadata.lastPlaceholderEnd),
-					`\n${this.messageList!.getIndent(3)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(2)}`
+					`\n${this.messageList!.getIndent(3)}"${placeholder.value}": {}\n${this.messageList!.getIndent(2)}`
 				);
 			} else {
-				const insertable = `\n${this.messageList!.getIndent(2)}"placeholders": {\n${this.messageList!.getIndent(3)}"${placeholder?.value}": {}\n${this.messageList!.getIndent(2)}}\n${this.messageList!.getIndent()}`;
+				const insertable = `\n${this.messageList!.getIndent(2)}"placeholders": {\n${this.messageList!.getIndent(3)}"${placeholder.value}": {}\n${this.messageList!.getIndent(2)}}\n${this.messageList!.getIndent()}`;
 				fix.edit.insert(document.uri, document.positionAt(metadata.metadataEnd), insertable);
 			}
 			return fix;
