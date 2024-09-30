@@ -20,6 +20,8 @@ import * as vscode from 'vscode';
 import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } from '../../decorate';
 import { CombinedMessage, Key, Literal, MessageList, Parser, getUnescapedRegions } from '../../messageParser';
 import { DiagnosticCode, Diagnostics } from '../../diagnose';
+import { L10nYaml } from '../../extension';
+import { CodeActions } from '../../codeactions';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 	[placeholderDecoration, '[decoration]placeholder'],
@@ -30,19 +32,19 @@ const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 suite('Extension Test Suite', async () => {
 	test("Decorate golden file.", async () => {
 		await updateConfiguration(null);
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb', undefined);
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb.arb');
 		await compareGolden(contentWithAnnotations, 'testarb.annotated');
 	});
 
 	test("Decorate golden file with template.", async () => {
 		await updateConfiguration(null);
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb_2.arb', 'testarb.arb');
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb_2.arb');
 		await compareGolden(contentWithAnnotations, 'testarb_2.annotated');
 	});
 
 	test("Decorate golden file with template that has no missing messages.", async () => {
 		await updateConfiguration(null);
-		const contentWithAnnotations = await buildContentWithAnnotations('testarb_3.arb', 'testarb.arb');
+		const contentWithAnnotations = await buildContentWithAnnotations('testarb_3.arb');
 		await compareGolden(contentWithAnnotations, 'testarb_3.annotated');
 	});
 
@@ -78,7 +80,7 @@ suite('Extension Test Suite', async () => {
 				}
 			}
 		}`;
-		const [, messages, errors] = new Parser().parse(document);
+		const [messages, errors] = new Parser().parse(document);
 		assert.equal(errors.length, 0);
 		assert.equal(messages.messageEntries.length, 6);
 		assert.equal(messages.metadataEntries.length, 5);
@@ -114,7 +116,7 @@ suite('Extension Test Suite', async () => {
 
 		const document = await getEditor('testarb.arb');
 
-		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const [messageList, errors] = new Parser().parse(document.document.getText())!;
 		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
 
 		assert.equal(diagnosticsList.length, 0);
@@ -123,10 +125,10 @@ suite('Extension Test Suite', async () => {
 	test("Test suppressed warning with id missing_metadata_for_key", async () => {
 		const id = DiagnosticCode.missingMetadataForKey;
 		await updateConfiguration([id]);
-		
+
 		const document = await getEditor('quickfix.arb');
 
-		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const [messageList, errors] = new Parser().parse(document.document.getText())!;
 		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
 
 		assert.equal(diagnosticsList.every(item => item.code !== id), true);
@@ -135,10 +137,10 @@ suite('Extension Test Suite', async () => {
 	test("Test suppressed warning with id 'invalid_key', 'missing_metadata_for_key'", async () => {
 		const ids = [DiagnosticCode.invalidKey, DiagnosticCode.missingMetadataForKey];
 		await updateConfiguration(ids);
-		
+
 		const document = await getEditor('testarb_2.arb');
 
-		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const [messageList, errors] = new Parser().parse(document.document.getText())!;
 		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
 
 		assert.equal(diagnosticsList.every(item => !ids.includes(item.code as DiagnosticCode)), true);
@@ -147,13 +149,52 @@ suite('Extension Test Suite', async () => {
 	test("Test suppressed warning with code 'metadata_for_missing_key'", async () => {
 		const id = DiagnosticCode.metadataForMissingKey;
 		await updateConfiguration([id]);
-		
+
 		const document = await getEditor('testarb_2.arb');
 
-		const [, messageList, errors] = new Parser().parse(document.document.getText())!;
+		const [messageList, errors] = new Parser().parse(document.document.getText())!;
 		const diagnosticsList = new Diagnostics().diagnose(document, messageList, errors, undefined);
 
 		assert.equal(diagnosticsList.every(item => item.code !== id), true);
+	});
+
+	suite('Template Path', async () => {
+		/* eslint-disable @typescript-eslint/naming-convention */
+		test("Resolve template path from @@x-template with L10nYaml", async () => {
+			const testDir = 'l10nYaml/with_x-template/l10n';
+			await updateConfiguration(null);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb_2.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb_2.annotated`);
+		});
+
+		test("Resolve template path from empty L10nYaml", async () => {
+			const testDir = 'l10nYaml/empty/lib/l10n';
+			await updateConfiguration(null);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb_2.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb_2.annotated`);
+		});
+
+		test("Resolve template path from L10nYaml with arb-dir and template-arb-file", async () => {
+			const testDir = 'l10nYaml/arb-dir_template-arb-file/_l10n';
+			await updateConfiguration(null);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb_2.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb_2.annotated`);
+		});
+
+		test("Resolve template path from L10nYaml with template-arb-file", async () => {
+			const testDir = 'l10nYaml/template-arb-file/lib/l10n';
+			await updateConfiguration(null);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb_2.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb_2.annotated`);
+		});
+
+		test("Resolve template path from L10nYaml with arb-dir", async () => {
+			const testDir = 'l10nYaml/arb-dir/_l10n';
+			await updateConfiguration(null);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb_2.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb_2.annotated`);
+		});
+		/* eslint-enable */
 	});
 });
 
@@ -173,7 +214,7 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 	const editor = await getEditor(testFile);
 
 	// Parse original
-	const [, messageList,] = new Parser().parse(editor.document.getText());
+	const [messageList,] = new Parser().parse(editor.document.getText());
 
 	// Apply fix for placeholder not defined in metadata
 	const item = getItemFromParsed(messageList);
@@ -209,18 +250,18 @@ async function regenerateGolden(newContent: string, goldenFilename: string) {
 	await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent));
 }
 
-async function buildContentWithAnnotations(filename: string, templateFile: string | undefined) {
+async function buildContentWithAnnotations(filename: string) {
 	const editor = await getEditor(filename);
 	const editorEol = editor.document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n";
-	const [, messageList, errors] = new Parser().parse(editor.document.getText())!;
-	let templateMessageList: MessageList | undefined;
-	let templateErrors: Literal[] | undefined;
-	if (templateFile) {
-		const templateEditor = await getEditor(templateFile);
-		[, templateMessageList, templateErrors] = new Parser().parse(templateEditor.document.getText())!;
-	}
-	const decorations = new Decorator().decorate(editor, messageList);
-	const diagnostics = new Diagnostics().diagnose(editor, messageList, errors, templateMessageList);
+
+	const { decorations, diagnostics } = new Parser().parseAndDecorate({
+		editor,
+		decorator: new Decorator(),
+		diagnostics: new Diagnostics(),
+		quickfixes: new CodeActions(),
+	});
+
+
 	const content = editor.document.getText();
 	const annotationsForLine = new Map<number, string[]>();
 	for (const entry of decorations.entries() ?? []) {

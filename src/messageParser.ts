@@ -10,13 +10,21 @@
 // limitations under the License.
 'use strict';
 
+import * as vscode from 'vscode';
 import { JSONPath, visit } from 'jsonc-parser';
 import XRegExp = require('xregexp');
+import { locateL10nYaml } from './project';
 import { L10nYaml } from './extension';
+import { Diagnostics } from './diagnose';
+import { Decorator } from './decorate';
+import { CodeActions } from './codeactions';
+import path = require('path');
+import YAML = require('yaml');
+import fs = require('fs');
 
 export class Parser {
 
-	parse(document: string, l10nOptions?: L10nYaml): [string|undefined, MessageList, Literal[]] {
+	parse(document: string, l10nOptions?: L10nYaml): [MessageList, Literal[]] {
 		let templatePath: string | undefined;
 		const messages: MessageEntry[] = [];
 		const metadata: MessageEntry[] = [];
@@ -25,7 +33,7 @@ export class Parser {
 		let inTemplateTag = false;
 		let placeholderLevel: number | null = null;
 		let metadataLevel: number | null = null;
-		let metadataKey: Key | null = null;	
+		let metadataKey: Key | null = null;
 		let messageKey: Key | null = null;
 		let definedPlaceholders: PlaceholderMetadata[] = [];
 		let errors: Literal[] = [];
@@ -172,8 +180,84 @@ export class Parser {
 			}
 		}
 
-		return [templatePath, new MessageList(templatePath, indentation ?? 0, indentationCharacter ?? ' ', messages, metadata), errors];
+		return [new MessageList(templatePath, indentation ?? 0, indentationCharacter ?? ' ', messages, metadata), errors];
 	}
+
+
+	private resolveTemplatePath({
+		document,
+		messageList,
+		l10nYamlPath,
+		l10nOptions,
+	}: {
+		document: vscode.TextDocument;
+		messageList: MessageList;
+	} & L10nYamlPathAndOptions): string | undefined {
+		if (messageList.templatePath) {
+			return path.isAbsolute(messageList.templatePath)
+				? messageList.templatePath
+				: path.join(path.dirname(document.uri.fsPath), messageList.templatePath);
+		} else if (l10nOptions !== undefined) {
+			const templateRootFromOptions = l10nOptions?.['arb-dir'] ?? 'lib/l10n';
+			const templatePathFromOptions = l10nOptions?.['template-arb-file'] ?? 'app_en.arb';
+
+			return path.isAbsolute(templatePathFromOptions)
+				? templatePathFromOptions
+				: path.join(path.dirname(l10nYamlPath), templateRootFromOptions, templatePathFromOptions);
+		}
+	}
+
+	parseAndDecorate({
+		editor,
+		decorator,
+		diagnostics,
+		quickfixes,
+	}: ParseAndDecorateOptions): ParseAndDecorateResult {
+		let templateMessageList: MessageList | undefined;
+
+		const l10nYamlPath = locateL10nYaml(editor.document.uri.fsPath);
+		const l10nOptions = l10nYamlPath
+			? parseYaml(l10nYamlPath)
+			: undefined;
+		const [messageList, errors] = this.parse(editor.document.getText(), l10nOptions)!;
+
+		const templatePath = this.resolveTemplatePath({
+			document: editor.document,
+			messageList,
+			l10nYamlPath: l10nYamlPath!,
+			l10nOptions: l10nOptions,
+		});
+
+		if (templatePath && templatePath !== editor.document.uri.fsPath) {
+			const template = fs.readFileSync(templatePath, "utf8");
+			// TODO(mosuem): Allow chaining of template files.
+			[templateMessageList,] = this.parse(template, l10nOptions)!;
+		}
+
+		const decorations = decorator.decorate(editor, messageList);
+		const diags = diagnostics.diagnose(editor, messageList, errors, templateMessageList);
+		quickfixes.update(messageList);
+		return { messageList, decorations, diagnostics: diags };
+	}
+}
+
+type L10nYamlPathAndOptions = {
+	l10nYamlPath: string;
+	l10nOptions: L10nYaml;
+} | {
+	l10nYamlPath: string | undefined;
+	l10nOptions: undefined;
+};
+interface ParseAndDecorateResult {
+	messageList: MessageList;
+	decorations: Map<vscode.TextEditorDecorationType, vscode.Range[]>;
+	diagnostics: vscode.Diagnostic[];
+}
+interface ParseAndDecorateOptions {
+	editor: vscode.TextEditor;
+	decorator: Decorator;
+	diagnostics: Diagnostics;
+	quickfixes: CodeActions;
 }
 
 function matchCurlyBrackets(v: string, l10nOptions?: L10nYaml): XRegExp.MatchRecursiveValueNameMatch[] {
@@ -187,6 +271,14 @@ function matchCurlyBrackets(v: string, l10nOptions?: L10nYaml): XRegExp.MatchRec
 		values.push(...newLocal);
 	}
 	return values;
+}
+
+function parseYaml(uri: string): L10nYaml | undefined {
+	if (!fs.existsSync(uri)) {
+		return;
+	}
+	const yaml = fs.readFileSync(uri, "utf8");
+	return YAML.parse(yaml) as L10nYaml;
 }
 
 export function getUnescapedRegions(expression: string, l10nOptions?: L10nYaml): [number, number][] {

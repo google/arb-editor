@@ -1,0 +1,5 @@
+arb-dir: _l10n
+template-arb-file: testarb.arb
+output-class: Words
+output-localization-file: app_localizations.dart
+untranslated-messages-file: lib/_l10n/desiredFileName.txt
