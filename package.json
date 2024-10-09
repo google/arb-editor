@@ -3,7 +3,7 @@
   "publisher": "Google",
   "displayName": "ARB Editor",
   "description": "Editor for Application Resource Bundle files, used for localization.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -49,7 +49,9 @@
           "anyOf": [
             {
               "type": "string",
-              "enum": ["all"],
+              "enum": [
+                "all"
+              ],
               "description": "Suppress all warnings in arbEditor."
             },
             {
@@ -89,7 +91,6 @@
     "i18n",
     "internationalization"
   ],
-  
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
