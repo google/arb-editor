@@ -1,0 +1,9 @@
+{
+    "@@locale": "en",
+    "property01": "Test",
+    "property02": "Te'st",
+    "property03": "'{Te'st",
+                   ^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 1"
+    "property04": "'{Te'st'"
+                   ^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 1"
+}
