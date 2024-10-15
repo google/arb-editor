@@ -41,9 +41,9 @@ An extension to help you in editing .arb files, used for localization of applica
 
 ### Customize
 
-Escaping quotes can be turned off by including a `l10n.yaml` file with the line:
+Escaping quotes can be turned on by including a `l10n.yaml` file with the line:
 ```yaml
-use-escaping: false
+use-escaping: true
 ```
 
 To set a template file, either set the `@@x-template` element in your `arb` file

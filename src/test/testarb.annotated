@@ -18,9 +18,9 @@
         }
     },
     "escaped": "Your pa'{'ssword",
-     ^^^^^^^[Information]:"The message with key "escaped" does not have metadata defined."
+                ^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 8"
     "unescaped": "Your pa'ssword",
-                  ^^^^^^^^^^^^^^[Error]:"Error: Unbalanced escape quotes. To escape a single quote ', prefix it with another single quote."
+     ^^^^^^^^^[Information]:"The message with key "unescaped" does not have metadata defined."
     "singlequote": "Your pa''ssword",
      ^^^^^^^^^^^[Information]:"The message with key "singlequote" does not have metadata defined."
     "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",

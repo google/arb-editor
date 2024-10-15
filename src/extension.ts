@@ -150,6 +150,6 @@ export interface L10nYaml {
 	'required-resource-attributes'?: boolean | undefined;
 	'nullable-getter'?: boolean | undefined;
 	'format'?: boolean | undefined;
-	'use-escaping'?: string | undefined;
+	'use-escaping'?: boolean | undefined;
 	'suppress-warnings'?: boolean | undefined;
 }
