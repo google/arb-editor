@@ -12,7 +12,7 @@
     "pageHomeTitle": "Welcome {firstName}",
                                ^^^^^^^^^[decoration]placeholder
     "escaped": "Your pa'{'ssword"
-     ^^^^^^^[Information]:"The message with key "escaped" does not have metadata defined."
+                ^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 8"
 }
 
-[Warning]:"Missing messages from template: singlequote, pageHomeInboxCount, commonVehicleType, pageHomeBalance"
+[Warning]:"Missing messages from template: unescaped, singlequote, pageHomeInboxCount, commonVehicleType, pageHomeBalance"

@@ -159,7 +159,6 @@ suite('Extension Test Suite', async () => {
 	});
 
 	suite('Template Path', async () => {
-		/* eslint-disable @typescript-eslint/naming-convention */
 		test("Resolve template path from @@x-template with L10nYaml", async () => {
 			const testDir = 'l10nYaml/with_x-template/l10n';
 			await updateConfiguration(null);
@@ -194,7 +193,29 @@ suite('Extension Test Suite', async () => {
 			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb_2.arb`);
 			await compareGolden(contentWithAnnotations, `${testDir}/testarb_2.annotated`);
 		});
-		/* eslint-enable */
+	});
+
+	suite('use-escaping', async () => {
+		test("Decorate golden file when use-escaping=true.", async () => {
+			const testDir = 'l10nYaml/use-escaping-true/_l10n';
+			await updateConfiguration([DiagnosticCode.missingMetadataForKey]);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb.annotated`);
+		});
+		
+		test("Decorate golden file when use-escaping=false.", async () => {
+			const testDir = 'l10nYaml/use-escaping-false/_l10n';
+			await updateConfiguration([DiagnosticCode.missingMetadataForKey]);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb.annotated`);
+		});
+
+		test("Decorate golden file when use-escaping=undefined.", async () => {
+			const testDir = 'l10nYaml/use-escaping-undefined/_l10n';
+			await updateConfiguration([DiagnosticCode.missingMetadataForKey]);
+			const contentWithAnnotations = await buildContentWithAnnotations(`${testDir}/testarb.arb`);
+			await compareGolden(contentWithAnnotations, `${testDir}/testarb.annotated`);
+		});
 	});
 });
 

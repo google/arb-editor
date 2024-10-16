@@ -1,0 +1,9 @@
+{
+    "@@locale": "en",
+    "property01": "Test",
+    "property02": "Te'st",
+                   ^^^^^[Error]:"Error: Unbalanced escape quotes. To escape a single quote ', prefix it with another single quote."
+    "property03": "'{Te'st",
+    "property04": "'{Te'st'"
+                   ^^^^^^^^[Error]:"Error: Unbalanced escape quotes. To escape a single quote ', prefix it with another single quote."
+}

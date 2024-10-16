@@ -4,6 +4,10 @@ All notable changes to the "arbeditor" extension will be documented in this file
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [Unreleased]
+
+- Fix behavior of `use-escaping` [#72](https://github.com/google/arb-editor/issues/72).
+
 ## [0.2.0] 
 
 - Fix [#62](https://github.com/google/arb-editor/issues/62).
