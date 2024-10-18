@@ -261,7 +261,10 @@ interface ParseAndDecorateOptions {
 }
 
 function matchCurlyBrackets(v: string, l10nOptions?: L10nYaml): XRegExp.MatchRecursiveValueNameMatch[] {
-	const unescaped = getUnescapedRegions(v, l10nOptions);
+	const unescaped = l10nOptions?.['use-escaping'] ?? false
+		? getUnescapedRegions(v) :
+		[[0, v.length]];
+
 	var values: XRegExp.MatchRecursiveValueNameMatch[] = [];
 	for (var region of unescaped) {
 		const newLocal = XRegExp.matchRecursive(v.substring(region[0], region[1]), '\\{', '\\}', 'g', {
@@ -281,12 +284,8 @@ function parseYaml(uri: string): L10nYaml | undefined {
 	return YAML.parse(yaml) as L10nYaml;
 }
 
-export function getUnescapedRegions(expression: string, l10nOptions?: L10nYaml): [number, number][] {
+export function getUnescapedRegions(expression: string): [number, number][] {
 	const unEscapedRegions: [number, number][] = [];
-
-	if (!(l10nOptions?.['use-escaping'] ?? true)) {
-		return [[0, expression.length]];
-	}
 
 	var unEscapedRegionEdge: number | null;
 	unEscapedRegionEdge = 0;
