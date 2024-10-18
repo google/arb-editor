@@ -45,3 +45,4 @@
                                          ^^^^^^^[Error]:""am[ount" is not a valid placeholder name. The key must start with a letter and contain only letters, numbers, underscores."
                                                       ^^^^^[Warning]:"Placeholder "date2" not defined in the message metadata."
 }
+

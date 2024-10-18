@@ -314,7 +314,7 @@ async function buildContentWithAnnotations(filename: string) {
 			lines.splice(index + 1, 0, ...annotationsForLine.get(index)!);
 		}
 	}
-	const contentWithAnnotations = lines.join(editorEol);
+	const contentWithAnnotations = lines.join(editorEol) + editorEol;
 	return contentWithAnnotations;
 }
 
