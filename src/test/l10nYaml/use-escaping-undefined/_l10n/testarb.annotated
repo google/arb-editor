@@ -7,3 +7,4 @@
     "property04": "'{Te'st'"
                    ^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 1"
 }
+

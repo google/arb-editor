@@ -2,4 +2,5 @@
     "@@locale": "en",
     "@@x-template": "testarb.arb"
 }
- [Warning]:"Missing messages from template: appName, withTemplate"
+
+[Warning]:"Missing messages from template: appName, withTemplate"

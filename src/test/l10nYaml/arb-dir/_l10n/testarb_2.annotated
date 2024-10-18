@@ -1,4 +1,5 @@
 {
     "@@locale": "en"
 }
- [Warning]:"Missing messages from template: appName, dir"
+
+[Warning]:"Missing messages from template: appName, dir"
