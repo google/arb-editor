@@ -39,6 +39,15 @@
      ^^^^^^^^^^^^^^^^^[Information]:"The message with key "commonVehicleType" does not have metadata defined."
                            ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" not defined in the message metadata."
                                         ^^^^^^^[Error]:"Unknown ICU messagetype "se?lect""
+    "commonVehicleTypeUnicode": "\t\u0050{vehicleType, select  , sedan  {\u0053edan} cabriolet{Solid\troof cabriolet{\u0076ehicleName}} truck{16 wheel truck} other{Other}}",
+                                          ^^^^^^^^^^^[decoration]placeholder
+                                                                                                                     ^^^^^^^^^^^^^^^^[decoration]placeholder
+                                                                 ^^^^^[decoration]select
+                                                                                     ^^^^^^^^^[decoration]select
+                                                                                                                                        ^^^^^[decoration]select
+                                                                                                                                                              ^^^^^[decoration]select
+                                          ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" not defined in the message metadata."
+                                                                                                                     ^^^^^^^^^^^^^^^^[Warning]:"Placeholder "vehicleName" not defined in the message metadata."
     "pageHomeBalance": "Your balance at {am[ount} on {date2}"
                                          ^^^^^^^[decoration]placeholder
                                                       ^^^^^[decoration]placeholder
