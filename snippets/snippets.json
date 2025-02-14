@@ -4,8 +4,7 @@
         "body": [
             "\"${1:id}\": \"$2\",",
             "\"@${1:id}\": {",
-            "  \"description\": \"${1/([a-z]+)(?=[A-Z])|([A-Z])(?=[A-Z])|([A-Z][a-z]+)(?=$)|([A-Z][a-z]+)|([a-z]+)(?=$)/${1:/capitalize}${1:+ }$2${2:+ }${3:/downcase}${4:/downcase}${4:+ }${5:/downcase}/g}\",",
-            "  }",
+            "  \"description\": \"${1/([a-z]+)(?=[A-Z])|([A-Z])(?=[A-Z])|([A-Z][a-z]+)(?=$)|([A-Z][a-z]+)|([a-z]+)(?=$)/${1:/capitalize}${1:+ }$2${2:+ }${3:/downcase}${4:/downcase}${4:+ }${5:/downcase}/g}\"",
             "},"
         ],
         "description": "A simple ARB string message"
