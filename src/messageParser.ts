@@ -71,23 +71,24 @@ export class Parser {
 					placeholderLevel = nestingLevel;
 				}
 			},
-			onLiteralValue: (value: any, offset: number) => {
+			onLiteralValue: (value: any, offset: number, length: number, startLine: number, startCharacter: number, pathSupplier: () => JSONPath) => {
 				if (inTemplateTag) {
 					templatePath = value;
 					inTemplateTag = false;
-				} else if (nestingLevel === 1 && messageKey !== null) {
+				} else if (typeof value === 'string' && nestingLevel === 1 && messageKey !== null) {
 					try {
-						var message = parseMessage(value, offset, false);
+						const rawValue = document.substring(offset + 1, offset + length - 1);
+						const message = parseMessage(StringLiteral.build(rawValue, value), offset, false);
 						messages.push(new MessageEntry(messageKey!, message));
 					} catch (error: any) {
 						//Very hacky solution to catch all errors here and store them, but better than not checking at all... The error has no special type, unfortunately.
 						if (String(error).startsWith('Error: Unbalanced ')) {
-							errors.push(new Literal(String(error), offset + 1, offset + value.length + 1));
+							errors.push(new Literal(String(error), offset + 1, offset + length - 1));
 						} else {
 							throw error;
 						}
 					}
-					messageKey.endOfMessage = offset + value.length + 2;
+					messageKey.endOfMessage = offset + length;
 				}
 			},
 			onObjectEnd: (offset: number, length: number, startLine: number, startCharacter: number) => {
@@ -109,14 +110,14 @@ export class Parser {
 		}, { disallowComments: true });
 
 
-		function parseMessage(messageString: string, globalOffset: number, expectPlaceholder: boolean): Message {
+		function parseMessage(messageString: StringLiteral, globalOffset: number, expectPlaceholder: boolean): Message {
 			const vals = matchCurlyBrackets(messageString, l10nOptions);
 
 			if (vals.length === 0) {
 				if (expectPlaceholder) {
-					return new Placeholder(messageString, globalOffset, globalOffset + messageString.length);
+					return new Placeholder(messageString.parsed, globalOffset, globalOffset + messageString.raw.length);
 				} else {
-					return new Literal(messageString, globalOffset, globalOffset + messageString.length);
+					return new Literal(messageString.parsed, globalOffset, globalOffset + messageString.raw.length);
 				}
 			}
 			const submessages: Message[] = [];
@@ -124,16 +125,16 @@ export class Parser {
 				const isSubmessage = part.name === 'content';
 				const isString = part.name === 'outside';
 				if (isSubmessage || isString) {
-					if (isSubmessage && part.value.includes(',')) {
+					if (isSubmessage && part.parsed.includes(',')) {
 						submessages.push(parseComplexMessage(part));
 					} else {
-						submessages.push(parseMessage(part.value, globalOffset + part.start + 1, isSubmessage));
+						submessages.push(parseMessage(part, globalOffset + part.rawStart + 1, isSubmessage));
 					}
 				}
 			}
 
 			if (submessages.length > 1) {
-				return new CombinedMessage(globalOffset, globalOffset + messageString.length, submessages);
+				return new CombinedMessage(globalOffset, globalOffset + messageString.raw.length, submessages);
 			} else {
 				return submessages[0];
 			}
@@ -141,27 +142,37 @@ export class Parser {
 			/**
 			* Decorate ICU Message of type `select`, `plural`, or `gender`
 			*/
-			function parseComplexMessage(part: XRegExp.MatchRecursiveValueNameMatch): ComplexMessage {
+			function parseComplexMessage(part: MatchRecursiveValueNameMatchStringLiteral): ComplexMessage {
 				const submessages = new Map<Literal, Message>();
-				const firstComma = part.value.indexOf(',');
-				var start = globalOffset + part.start + 1;
-				var end = globalOffset + part.start + firstComma + 1;
+				const firstComma = part.parsed.indexOf(',');
 
-				const argument = new Literal(part.value.substring(0, firstComma), start, end);
+				const argument = new Literal(
+					part.parsed.substring(0, firstComma),
+					globalOffset + part.rawStart + 1,
+					globalOffset + part.rawStart + part.positions[firstComma] + 1
+				);
 
-				start = firstComma + 1;
-				const secondComma = part.value.indexOf(',', start);
-				end = secondComma;
-				({ start, end } = trim(part.value, start, end));
-				const complexType = new Literal(part.value.substring(start, end), globalOffset + part.start + start + 1, globalOffset + part.start + end + 1);
+				let start = firstComma + 1;
+				const secondComma = part.parsed.indexOf(',', start);
+				let end = secondComma;
+				({ start, end } = trim(part.parsed, start, end));
+				const complexType = new Literal(
+					part.parsed.substring(start, end),
+					globalOffset + part.rawStart + part.positions[start] + 1,
+					globalOffset + part.rawStart + part.positions[end] + 1
+				);
 				start = secondComma + 1;
-				const bracketedValues = matchCurlyBrackets(part.value, l10nOptions);
+				const bracketedValues = matchCurlyBrackets(part, l10nOptions);
 				for (const innerPart of bracketedValues) {
 					if (innerPart.name === 'content') {
 						end = innerPart.start - 1;
-						({ start, end } = trim(part.value, start, end));
-						var submessagekey = new Literal(part.value.substring(start, end), globalOffset + part.start + start + 1, globalOffset + part.start + end + 1);
-						var message = parseMessage(innerPart.value, globalOffset + part.start + innerPart.start, false);
+						({ start, end } = trim(part.parsed, start, end));
+						let submessagekey = new Literal(
+							part.parsed.substring(start, end),
+							globalOffset + part.rawStart + part.positions[start] + 1,
+							globalOffset + part.rawStart + part.positions[end] + 1
+						);
+						let message = parseMessage(innerPart, globalOffset + part.rawStart + innerPart.rawStart, false);
 						submessages.set(submessagekey, message);
 						start = innerPart.end + 1;
 					}
@@ -260,18 +271,19 @@ interface ParseAndDecorateOptions {
 	quickfixes: CodeActions;
 }
 
-function matchCurlyBrackets(v: string, l10nOptions?: L10nYaml): XRegExp.MatchRecursiveValueNameMatch[] {
+function matchCurlyBrackets(v: StringLiteral, l10nOptions?: L10nYaml): MatchRecursiveValueNameMatchStringLiteral[] {
 	const unescaped = l10nOptions?.['use-escaping'] ?? false
-		? getUnescapedRegions(v) :
-		[[0, v.length]];
+		? getUnescapedRegions(v.parsed) :
+		[[0, v.parsed.length]];
 
-	var values: XRegExp.MatchRecursiveValueNameMatch[] = [];
+	const values: MatchRecursiveValueNameMatchStringLiteral[] = [];
 	for (var region of unescaped) {
-		const newLocal = XRegExp.matchRecursive(v.substring(region[0], region[1]), '\\{', '\\}', 'g', {
+		const subLiteral = v.sub(region[0], region[1]);
+		const newLocal = XRegExp.matchRecursive(subLiteral.parsed, '\\{', '\\}', 'g', {
 			valueNames: ['outside', 'leftBracket', 'content', 'rightBracket'],
 			unbalanced: 'error'
 		});
-		values.push(...newLocal);
+		values.push(...newLocal.map(l => subLiteral.convertMatch(l)));
 	}
 	return values;
 }
@@ -530,5 +542,82 @@ export class PlaceholderMetadata extends Message {
 
 	getPlaceholders(): Literal[] {
 		return [];
+	}
+}
+
+class StringLiteral {
+	constructor(
+		public raw: string,
+		public parsed: string,
+		public positions: number[],
+	) {
+	}
+
+	static build(raw: string, parsed: string): StringLiteral {
+		const positions: number[] = [];
+		let pos = 0;
+		for (let i = 0; i < raw.length; i++) {
+			let len = 1;
+			if (raw.charAt(i) === '\\') {
+				if (++i < raw.length) {
+					if (raw.substring(i, i + 5).match(/^u[A-Fa-f0-9]{4}/)) {
+						len = 6;
+						i += 4;
+					}
+					else {
+						len = 2;
+					}
+				}
+			}
+			positions.push(pos);
+			pos += len;
+		}
+		positions.push(pos);
+		return new StringLiteral(raw, parsed, positions);
+	}
+
+	private slicePositions(start: number, end: number): number[] {
+		const offset = this.positions[start];
+		return this.positions.slice(start, end + 1).map(v => v - offset);
+	}
+
+	public convertMatch(match: XRegExp.MatchRecursiveValueNameMatch): MatchRecursiveValueNameMatchStringLiteral {
+		const rawStart = this.positions[match.start];
+		const rawEnd = this.positions[match.end];
+		return new MatchRecursiveValueNameMatchStringLiteral(
+			match.name,
+			match.start,
+			match.end,
+			rawStart,
+			rawEnd,
+			this.raw.substring(rawStart, rawEnd),
+			match.value,
+			this.slicePositions(match.start, match.end),
+		);
+	}
+
+	public sub(start: number, end: number): StringLiteral {
+		const rawStart = this.positions[start];
+		const rawEnd = this.positions[end];
+		return new StringLiteral(
+			this.raw.substring(rawStart, rawEnd),
+			this.parsed.substring(start, end),
+			this.slicePositions(start, end),
+		);
+	}
+}
+
+class MatchRecursiveValueNameMatchStringLiteral extends StringLiteral {
+	constructor(
+		public name: string,
+		public start: number,
+		public end: number,
+		public rawStart: number,
+		public rawEnd: number,
+		raw: string,
+		parsed: string,
+		positions: number[],
+	) {
+		super(raw, parsed, positions);
 	}
 }

@@ -23,6 +23,8 @@
      ^^^^^^^^^[Information]:"The message with key "unescaped" does not have metadata defined."
     "singlequote": "Your pa''ssword",
      ^^^^^^^^^^^[Information]:"The message with key "singlequote" does not have metadata defined."
+    "unbalanced": "Your\tpa\u007Bssword",
+                   ^^^^^^^^^^^^^^^^^^^^[Error]:"Error: Unbalanced left delimiter found in string at position 7"
     "pageHomeInboxCount": "{count, plural, zero{I have {vehicle;;Type, select, sedn{Sedan} cabrolet{Solid roof cabriolet} tuck{16 wheel truck} other{Other}} no new messages} one{You have 1 new {counts} message} other{You have {count} new messages}}",
                             ^^^^^[decoration]placeholder
                                                         ^^^^^^^^^^^^^[decoration]placeholder
@@ -72,6 +74,17 @@
         "placeholders": {
             "vehicleType": {}
         }
+    },
+    "commonVehicleTypeUnicode": "\t\u0050{vehicleType, select  , sedan  {\u0053edan} cabriolet{Solid\troof cabriolet{\u0076ehicleName}} truck{16 wheel truck} other{Other}}",
+                                          ^^^^^^^^^^^[decoration]placeholder
+                                                                                                                     ^^^^^^^^^^^^^^^^[decoration]placeholder
+                                                                 ^^^^^[decoration]select
+                                                                                     ^^^^^^^^^[decoration]select
+                                                                                                                                        ^^^^^[decoration]select
+                                                                                                                                                              ^^^^^[decoration]select
+                                          ^^^^^^^^^^^[Warning]:"Placeholder "vehicleType" not defined in the message metadata."
+                                                                                                                     ^^^^^^^^^^^^^^^^[Warning]:"Placeholder "vehicleName" not defined in the message metadata."
+    "@commonVehicleTypeUnicode": {
     },
     "pageHomeBalance": "Your balance at {am[ount} on {date2}",
                                          ^^^^^^^[decoration]placeholder
