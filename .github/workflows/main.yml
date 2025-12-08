@@ -17,7 +17,7 @@ jobs:
     - name: Install Node.js
       uses: actions/setup-node@eff380dfbcf941bf8832e4acb788cebe13dfd758
       with:
-        node-version: 18.16.0
+        node-version: 24.11.1
     - run: npm install
     - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
