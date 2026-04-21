@@ -14,7 +14,7 @@
 import * as vscode from 'vscode';
 import path = require('path');
 import YAML = require('yaml');
-import { getL10nYamlContent, locateL10nYaml } from './project';
+import { getArbMessages, getL10nYamlContent, getParsedL10nYaml, locateL10nYaml } from './project';
 
 /**
  * Pattern to find member access expressions:
@@ -36,6 +36,10 @@ type MemberAccessCandidate = {
 };
 
 type CodeLensLanguageMode = 'definedByYaml' | 'custom';
+type L10nYamlOptions = {
+	'arb-dir'?: string;
+	'template-arb-file'?: string;
+};
 
 /**
  * CodeLens provider class.
@@ -88,6 +92,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 		const source = document.getText();
 		const candidates = getMemberAccessCandidates(source);
 		const displayLanguage = resolveCodeLensDisplayLanguage(document);
+		const localizedMessages = resolveLocalizedArbMessages(document, displayLanguage);
 		const codeLenses: vscode.CodeLens[] = [];
 
 		for (const candidate of candidates) {
@@ -97,12 +102,15 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 			const position = document.positionAt(offset);
 
 			if (!candidate.requiresHoverCheck) {
+				const title = getCodeLensTitle(candidate.member, displayLanguage, localizedMessages);
+				if (!title) continue;
+
 				const lensPosition = document.positionAt(offset);
 				const range = new vscode.Range(lensPosition, lensPosition);
 
 				codeLenses.push(
 					new vscode.CodeLens(range, {
-						title: getCodeLensTitle(displayLanguage),
+						title,
 						command: 'arb-editor.noopCodeLens'
 					})
 				);
@@ -118,12 +126,15 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 				);
 
 				if (hovers && hovers.length > 0 && isAppLocalizationsType(hovers[0])) {
+					const title = getCodeLensTitle(candidate.member, displayLanguage, localizedMessages);
+					if (!title) continue;
+
 					const lensPosition = document.positionAt(offset);
 					const range = new vscode.Range(lensPosition, lensPosition);
 
 					codeLenses.push(
 						new vscode.CodeLens(range, {
-							title: getCodeLensTitle(displayLanguage),
+							title,
 							command: 'arb-editor.noopCodeLens'
 						})
 					);
@@ -137,8 +148,66 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 	}
 }
 
-function getCodeLensTitle(language: string): string {
-	return `Ah-ha! AppLocalizations is below me :) [${language}]`;
+function getCodeLensTitle(member: string, language: string, localizedMessages: Record<string, string> | undefined): string | undefined {
+	const message = localizedMessages?.[member];
+	if (!message) return undefined;
+
+	const normalized = message.replace(/\s+/g, ' ').trim();
+	const preview = normalized.length > 80
+		? `${normalized.slice(0, 77)}...`
+		: normalized;
+
+	return `[${language}]: ${preview}`;
+}
+
+function resolveLocalizedArbMessages(document: vscode.TextDocument, language: string): Record<string, string> | undefined {
+	const l10nYamlPath = locateL10nYaml(path.dirname(document.uri.fsPath));
+	if (!l10nYamlPath) {
+		return undefined;
+	}
+
+	const l10nOptions = getParsedL10nYaml<L10nYamlOptions>(l10nYamlPath);
+	const arbPath = resolveArbPathForLanguage(l10nYamlPath, language, l10nOptions);
+	return getArbMessages(arbPath);
+}
+
+function resolveArbPathForLanguage(
+	l10nYamlPath: string,
+	language: string,
+	l10nOptions: L10nYamlOptions | undefined,
+): string | undefined {
+	const baseDir = path.dirname(l10nYamlPath);
+	const arbDirOption = l10nOptions?.['arb-dir'] ?? 'lib/l10n';
+	const templateArbFile = l10nOptions?.['template-arb-file'] ?? 'app_en.arb';
+	const arbDir = path.isAbsolute(arbDirOption)
+		? arbDirOption
+		: path.join(baseDir, arbDirOption);
+
+	const candidateFiles = buildArbFileCandidates(templateArbFile, language);
+	for (const candidateFile of candidateFiles) {
+		const arbPath = path.isAbsolute(candidateFile)
+			? candidateFile
+			: path.join(arbDir, candidateFile);
+		const messages = getArbMessages(arbPath);
+		if (messages) {
+			return arbPath;
+		}
+	}
+
+	return undefined;
+}
+
+function buildArbFileCandidates(templateArbFile: string, language: string): string[] {
+	const candidates = new Set<string>();
+	const normalizedLanguage = language.trim();
+	if (normalizedLanguage) {
+		candidates.add(templateArbFile.replace(/_([A-Za-z0-9_-]+)\.arb$/, `_${normalizedLanguage}.arb`));
+		candidates.add(`app_${normalizedLanguage}.arb`);
+		candidates.add(`${normalizedLanguage}.arb`);
+	}
+	candidates.add(templateArbFile);
+
+	return [...candidates];
 }
 
 /**

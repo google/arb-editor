@@ -11,7 +11,13 @@ type L10nYamlCacheEntry = {
 	parsed: Record<string, unknown> | undefined;
 };
 
+type ArbMessagesCacheEntry = {
+	mtimeMs: number;
+	messages: Record<string, string> | undefined;
+};
+
 const l10nYamlCache = new Map<string, L10nYamlCacheEntry>();
+const arbMessagesCache = new Map<string, ArbMessagesCacheEntry>();
 
 export function locateL10nYaml(folder: string): string | undefined {
 	if (!folder || (!isWithinWorkspace(folder) && workspace.workspaceFolders?.length)) return undefined;
@@ -36,6 +42,37 @@ export function getL10nYamlContent(l10nYamlPath: string | undefined): string | u
 
 export function getParsedL10nYaml<T>(l10nYamlPath: string | undefined): T | undefined {
 	return getCachedL10nYaml(l10nYamlPath)?.parsed as T | undefined;
+}
+
+export function getArbMessages(arbPath: string | undefined): Record<string, string> | undefined {
+	if (!arbPath || !fs.existsSync(arbPath)) return undefined;
+
+	const stat = fs.statSync(arbPath);
+	const cached = arbMessagesCache.get(arbPath);
+	if (cached && cached.mtimeMs === stat.mtimeMs) return cached.messages;
+
+	const content = fs.readFileSync(arbPath, "utf8");
+	let messages: Record<string, string> | undefined;
+	try {
+		const parsed = JSON.parse(content) as unknown;
+		if (parsed && typeof parsed === "object") {
+			messages = {};
+			for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+				if (!key.startsWith('@') && typeof value === "string") {
+					messages[key] = value;
+				}
+			}
+		}
+	} catch {
+		messages = undefined;
+	}
+
+	arbMessagesCache.set(arbPath, {
+		mtimeMs: stat.mtimeMs,
+		messages,
+	});
+
+	return messages;
 }
 
 function getCachedL10nYaml(l10nYamlPath: string | undefined): L10nYamlCacheEntry | undefined {
