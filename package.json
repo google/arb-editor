@@ -21,7 +21,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:json"
+    "onLanguage:json",
+    "onLanguage:dart"
   ],
   "icon": "media/logo.png",
   "main": "./out/extension.js",
@@ -79,6 +80,11 @@
               }
             }
           ]
+        },
+        "arb-editor.enableAppLocalizationsCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CodeLens for AppLocalizations member access in Dart files."
         }
       }
     }
