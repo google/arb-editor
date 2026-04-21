@@ -85,6 +85,20 @@
           "type": "boolean",
           "default": true,
           "description": "Enable CodeLens for AppLocalizations member access in Dart files."
+        },
+        "arb-editor.appLocalizationsCodeLensLanguageMode": {
+          "type": "string",
+          "enum": [
+            "definedByYaml",
+            "custom"
+          ],
+          "default": "definedByYaml",
+          "markdownDescription": "Controls language source for CodeLens text preview.\nUse `#arb-editor.appLocalizationsCodeLensCustomLanguage#` to set the custom language value."
+        },
+        "arb-editor.appLocalizationsCodeLensCustomLanguage": {
+          "type": "string",
+          "default": "en",
+          "markdownDescription": "Custom language code for CodeLens text (for example: `en`, `ru`, `fr`).\n\nThis field only works when `#arb-editor.appLocalizationsCodeLensLanguageMode#` is set to `custom`."
         }
       }
     }
