@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as assert from 'assert';
-import { getMemberAccessCandidates } from '../../codelens';
+import { extractLanguageFromL10nYamlContent, getMemberAccessCandidates, resolveDisplayLanguage } from '../../codelens';
 
 suite('AppLocalizations CodeLens', () => {
 	test('does not match AppLocalizations.of in assignment', () => {
@@ -153,5 +153,44 @@ AppLocalizations.of(context)?.abc;
 			candidates.map(candidate => `${candidate.identifier}.${candidate.member}`),
 			['AppLocalizations.abc']
 		);
+	});
+
+	test('resolves language from template-arb-file in l10n.yaml', () => {
+		const content = `
+arb-dir: lib/l10n
+template-arb-file: app_ja.arb
+`;
+
+		assert.strictEqual(extractLanguageFromL10nYamlContent(content), 'ja');
+	});
+
+	test('resolves custom language when mode is custom', () => {
+		const resolved = resolveDisplayLanguage({
+			languageMode: 'custom',
+			customLanguage: 'es',
+			l10nYamlContent: 'template-arb-file: app_en.arb',
+		});
+
+		assert.strictEqual(resolved, 'es');
+	});
+
+	test('falls back to l10n.yaml language when custom language is empty', () => {
+		const resolved = resolveDisplayLanguage({
+			languageMode: 'custom',
+			customLanguage: '   ',
+			l10nYamlContent: 'template-arb-file: app_zh.arb',
+		});
+
+		assert.strictEqual(resolved, 'zh');
+	});
+
+	test('defaults to en when no settings or l10n language available', () => {
+		const resolved = resolveDisplayLanguage({
+			languageMode: 'definedByYaml',
+			customLanguage: '',
+			l10nYamlContent: 'arb-dir: lib/l10n',
+		});
+
+		assert.strictEqual(resolved, 'en');
 	});
 });

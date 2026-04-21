@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as vscode from 'vscode';
+import path = require('path');
+import YAML = require('yaml');
+import { getL10nYamlContent, locateL10nYaml } from './project';
 
 /**
  * Pattern to find member access expressions:
@@ -32,6 +35,8 @@ type MemberAccessCandidate = {
 	requiresHoverCheck: boolean;
 };
 
+type CodeLensLanguageMode = 'definedByYaml' | 'custom';
+
 /**
  * CodeLens provider class.
  */
@@ -44,7 +49,13 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 	 */
 	constructor() {
 		vscode.workspace.onDidChangeConfiguration(event => {
-			if (!event.affectsConfiguration('arb-editor.enableAppLocalizationsCodeLens')) return;
+			if (
+				!event.affectsConfiguration('arb-editor.enableAppLocalizationsCodeLens')
+				&& !event.affectsConfiguration('arb-editor.appLocalizationsCodeLensLanguageMode')
+				&& !event.affectsConfiguration('arb-editor.appLocalizationsCodeLensCustomLanguage')
+			) {
+				return;
+			}
 
 			this.codeLensEmitter.fire();
 		});
@@ -76,6 +87,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 	): Promise<vscode.CodeLens[]> {
 		const source = document.getText();
 		const candidates = getMemberAccessCandidates(source);
+		const displayLanguage = resolveCodeLensDisplayLanguage(document);
 		const codeLenses: vscode.CodeLens[] = [];
 
 		for (const candidate of candidates) {
@@ -90,7 +102,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 
 				codeLenses.push(
 					new vscode.CodeLens(range, {
-						title: 'Ah-ha! AppLocalizations is below me :)',
+						title: getCodeLensTitle(displayLanguage),
 						command: 'arb-editor.noopCodeLens'
 					})
 				);
@@ -111,7 +123,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 
 					codeLenses.push(
 						new vscode.CodeLens(range, {
-							title: 'Ah-ha! AppLocalizations is below me :)',
+							title: getCodeLensTitle(displayLanguage),
 							command: 'arb-editor.noopCodeLens'
 						})
 					);
@@ -123,6 +135,10 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 
 		return codeLenses;
 	}
+}
+
+function getCodeLensTitle(language: string): string {
+	return `Ah-ha! AppLocalizations is below me :) [${language}]`;
 }
 
 /**
@@ -170,6 +186,103 @@ export function getMemberAccessCandidates(source: string): MemberAccessCandidate
  */
 function isLikelyTypeOrStaticReceiver(identifier: string): boolean {
 	return /^[A-Z]/.test(identifier);
+}
+
+/**
+ * Resolves the display language from settings and optional l10n.yaml data.
+ */
+export function resolveDisplayLanguage(options: {
+	languageMode?: string;
+	customLanguage?: string;
+	l10nYamlContent?: string;
+}): string {
+	const mode = options.languageMode === 'custom' ? 'custom' : 'definedByYaml';
+	const customLanguage = (options.customLanguage ?? '').trim();
+
+	if (mode === 'custom' && customLanguage) {
+		return customLanguage;
+	}
+
+	const yamlLanguage = extractLanguageFromL10nYamlContent(options.l10nYamlContent);
+	if (yamlLanguage) {
+		return yamlLanguage;
+	}
+
+	if (customLanguage) {
+		return customLanguage;
+	}
+
+	return 'en';
+}
+
+/**
+ * Extracts a locale code from l10n.yaml settings.
+ */
+export function extractLanguageFromL10nYamlContent(content?: string): string | undefined {
+	if (!content) {
+		return undefined;
+	}
+
+	let parsed: Record<string, unknown> | undefined;
+	try {
+		parsed = YAML.parse(content) as Record<string, unknown>;
+	} catch {
+		return undefined;
+	}
+
+	if (!parsed || typeof parsed !== 'object') {
+		return undefined;
+	}
+
+	const templateArbFile = typeof parsed['template-arb-file'] === 'string' ? parsed['template-arb-file'] : undefined;
+	const preferredSupportedLocales = typeof parsed['preferred-supported-locales'] === 'string' ? parsed['preferred-supported-locales'] : undefined;
+	const outputLocalizationFile = typeof parsed['output-localization-file'] === 'string' ? parsed['output-localization-file'] : undefined;
+
+	const templateLanguage = extractLanguageFromFileName(templateArbFile, '.arb');
+	if (templateLanguage) {
+		return templateLanguage;
+	}
+
+	const preferredLanguage = extractFirstLocale(preferredSupportedLocales);
+	if (preferredLanguage) {
+		return preferredLanguage;
+	}
+
+	return extractLanguageFromFileName(outputLocalizationFile, '.dart');
+}
+
+function resolveCodeLensDisplayLanguage(document: vscode.TextDocument): string {
+	const config = vscode.workspace.getConfiguration('arb-editor');
+	const languageMode = config.get<CodeLensLanguageMode>('appLocalizationsCodeLensLanguageMode', 'definedByYaml');
+	const customLanguage = config.get<string>('appLocalizationsCodeLensCustomLanguage', '');
+
+	const l10nYamlPath = locateL10nYaml(path.dirname(document.uri.fsPath));
+	const l10nYamlContent = getL10nYamlContent(l10nYamlPath);
+
+	return resolveDisplayLanguage({
+		languageMode,
+		customLanguage,
+		l10nYamlContent,
+	});
+}
+
+function extractLanguageFromFileName(fileName: string | undefined, suffix: '.arb' | '.dart'): string | undefined {
+	if (!fileName) return undefined;
+
+	const normalized = fileName.trim();
+	const matcher = suffix === '.arb'
+		? /_([A-Za-z0-9_-]+)\.arb$/
+		: /_([A-Za-z0-9_-]+)\.dart$/;
+
+	const match = normalized.match(matcher);
+	return match?.[1];
+}
+
+function extractFirstLocale(rawLocales: string | undefined): string | undefined {
+	if (!rawLocales) return undefined;
+
+	const match = rawLocales.match(/[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]+)*/);
+	return match?.[0];
 }
 
 /**
