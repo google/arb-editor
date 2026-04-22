@@ -40,6 +40,11 @@ type L10nYamlOptions = {
 	'arb-dir'?: string;
 	'template-arb-file'?: string;
 };
+type LocalizedArbData = {
+	path: string;
+	filename: string;
+	messages: Record<string, string>;
+};
 
 /**
  * CodeLens provider class.
@@ -57,6 +62,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 				!event.affectsConfiguration('arb-editor.enableAppLocalizationsCodeLens')
 				&& !event.affectsConfiguration('arb-editor.appLocalizationsCodeLensLanguageMode')
 				&& !event.affectsConfiguration('arb-editor.appLocalizationsCodeLensCustomLanguage')
+				&& !event.affectsConfiguration('arb-editor.appLocalizationsCodeLensTemplate')
 			) {
 				return;
 			}
@@ -91,8 +97,10 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 	): Promise<vscode.CodeLens[]> {
 		const source = document.getText();
 		const candidates = getMemberAccessCandidates(source);
+		const config = vscode.workspace.getConfiguration('arb-editor');
+		const template = config.get<string>('appLocalizationsCodeLensTemplate', '[${lang}] ${value}');
 		const displayLanguage = resolveCodeLensDisplayLanguage(document);
-		const localizedMessages = resolveLocalizedArbMessages(document, displayLanguage);
+		const localizedArbData = resolveLocalizedArbData(document, displayLanguage);
 		const codeLenses: vscode.CodeLens[] = [];
 
 		for (const candidate of candidates) {
@@ -102,7 +110,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 			const position = document.positionAt(offset);
 
 			if (!candidate.requiresHoverCheck) {
-				const title = getCodeLensTitle(candidate.member, displayLanguage, localizedMessages);
+				const title = getCodeLensTitle(candidate.member, displayLanguage, template, localizedArbData);
 				if (!title) continue;
 
 				const lensPosition = document.positionAt(offset);
@@ -126,7 +134,7 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 				);
 
 				if (hovers && hovers.length > 0 && isAppLocalizationsType(hovers[0])) {
-					const title = getCodeLensTitle(candidate.member, displayLanguage, localizedMessages);
+					const title = getCodeLensTitle(candidate.member, displayLanguage, template, localizedArbData);
 					if (!title) continue;
 
 					const lensPosition = document.positionAt(offset);
@@ -148,19 +156,38 @@ export class AppLocalizationsCodeLensProvider implements vscode.CodeLensProvider
 	}
 }
 
-function getCodeLensTitle(member: string, language: string, localizedMessages: Record<string, string> | undefined): string | undefined {
-	const message = localizedMessages?.[member];
+function getCodeLensTitle(
+	member: string,
+	language: string,
+	template: string,
+	localizedArbData: LocalizedArbData | undefined,
+): string | undefined {
+	const message = localizedArbData?.messages[member];
 	if (!message) return undefined;
 
 	const normalized = message.replace(/\s+/g, ' ').trim();
-	const preview = normalized.length > 80
-		? `${normalized.slice(0, 77)}...`
-		: normalized;
+	const rendered = renderCodeLensTemplate(template, {
+		value: normalized,
+		path: localizedArbData.path,
+		filename: localizedArbData.filename,
+		lang: language,
+	}).trim();
 
-	return `[${language}]: ${preview}`;
+	return rendered || undefined;
 }
 
-function resolveLocalizedArbMessages(document: vscode.TextDocument, language: string): Record<string, string> | undefined {
+export function renderCodeLensTemplate(
+	template: string,
+	variables: { value: string; path: string; filename: string; lang: string; },
+): string {
+	return template
+		.replace(/\$\{value\}/g, variables.value)
+		.replace(/\$\{path\}/g, variables.path)
+		.replace(/\$\{filename\}/g, variables.filename)
+		.replace(/\$\{lang\}/g, variables.lang);
+}
+
+function resolveLocalizedArbData(document: vscode.TextDocument, language: string): LocalizedArbData | undefined {
 	const l10nYamlPath = locateL10nYaml(path.dirname(document.uri.fsPath));
 	if (!l10nYamlPath) {
 		return undefined;
@@ -168,7 +195,16 @@ function resolveLocalizedArbMessages(document: vscode.TextDocument, language: st
 
 	const l10nOptions = getParsedL10nYaml<L10nYamlOptions>(l10nYamlPath);
 	const arbPath = resolveArbPathForLanguage(l10nYamlPath, language, l10nOptions);
-	return getArbMessages(arbPath);
+	const messages = getArbMessages(arbPath);
+	if (!arbPath || !messages) {
+		return undefined;
+	}
+
+	return {
+		path: arbPath,
+		filename: path.basename(arbPath),
+		messages,
+	};
 }
 
 function resolveArbPathForLanguage(

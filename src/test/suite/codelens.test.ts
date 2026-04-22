@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as assert from 'assert';
-import { extractLanguageFromL10nYamlContent, getMemberAccessCandidates, resolveDisplayLanguage } from '../../codelens';
+import { extractLanguageFromL10nYamlContent, getMemberAccessCandidates, renderCodeLensTemplate, resolveDisplayLanguage } from '../../codelens';
 
 suite('AppLocalizations CodeLens', () => {
 	test('does not match AppLocalizations.of in assignment', () => {
@@ -192,5 +192,27 @@ template-arb-file: app_ja.arb
 		});
 
 		assert.strictEqual(resolved, 'en');
+	});
+
+	test('renders codelens template with all supported variables', () => {
+		const rendered = renderCodeLensTemplate('[${lang}] ${filename} ${value} (${path})', {
+			value: 'Hello world',
+			path: '/tmp/app_en.arb',
+			filename: 'app_en.arb',
+			lang: 'en',
+		});
+
+		assert.strictEqual(rendered, '[en] app_en.arb Hello world (/tmp/app_en.arb)');
+	});
+
+	test('renders codelens template using dollar-brace placeholders', () => {
+		const rendered = renderCodeLensTemplate('[${lang}] ${value}', {
+			value: 'Bonjour',
+			path: '/tmp/app_fr.arb',
+			filename: 'app_fr.arb',
+			lang: 'fr',
+		});
+
+		assert.strictEqual(rendered, '[fr] Bonjour');
 	});
 });

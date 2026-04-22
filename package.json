@@ -84,7 +84,7 @@
         "arb-editor.enableAppLocalizationsCodeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Enable CodeLens for AppLocalizations member access in Dart files."
+          "markdownDescription": "Enable AppLocalizations CodeLens in Dart files."
         },
         "arb-editor.appLocalizationsCodeLensLanguageMode": {
           "type": "string",
@@ -93,12 +93,17 @@
             "custom"
           ],
           "default": "definedByYaml",
-          "markdownDescription": "Controls language source for CodeLens text preview.\nUse `#arb-editor.appLocalizationsCodeLensCustomLanguage#` to set the custom language value."
+          "markdownDescription": "Selects how the `lang` template variable is resolved for AppLocalizations CodeLens text.\n\n- `definedByYaml`: uses language defined in the `template-arb-file` value of `l10n.yaml` file.\n- `custom`: uses `#arb-editor.appLocalizationsCodeLensCustomLanguage#`."
         },
         "arb-editor.appLocalizationsCodeLensCustomLanguage": {
           "type": "string",
           "default": "en",
-          "markdownDescription": "Custom language code for CodeLens text (for example: `en`, `ru`, `fr`).\n\nThis field only works when `#arb-editor.appLocalizationsCodeLensLanguageMode#` is set to `custom`."
+          "markdownDescription": "Custom language code used for the `lang` template variable (for example: `en`, `fr`, `ru`).\n\nThis setting only applies when `#arb-editor.appLocalizationsCodeLensLanguageMode#` is `custom`."
+        },
+        "arb-editor.appLocalizationsCodeLensTemplate": {
+          "type": "string",
+          "default": "[${lang}]: \"${value}\"",
+          "markdownDescription": "Template used to render AppLocalizations CodeLens text.\n\nAvailable variables:\n- `${value}`: localized value from the resolved `.arb` file.\n- `${path}`: full path to the resolved `.arb` file.\n- `${filename}`: filename of the resolved `.arb` file.\n- `${lang}`: resolved language code (`en`, `fr`, `ru`)."
         }
       }
     }
