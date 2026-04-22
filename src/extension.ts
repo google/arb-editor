@@ -23,6 +23,7 @@ let pendingDecorations: NodeJS.Timeout | undefined;
 
 import path = require('path');
 import * as vscode from 'vscode';
+import { AppLocalizationsCodeLensProvider } from './codelens';
 import { CodeActions } from './codeactions';
 import { Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
@@ -37,6 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const diagnostics = new Diagnostics(context);
 	const parser = new Parser();
 	const quickfixes = new CodeActions();
+	const appLocalizationsCodeLenses = new AppLocalizationsCodeLensProvider();
 	let commonMessageList: MessageList | undefined;
 
 	// decorate when changing the active editor editor
@@ -76,6 +78,15 @@ export async function activate(context: vscode.ExtensionContext) {
 			},
 		),
 	);
+
+	context.subscriptions.push(
+		vscode.languages.registerCodeLensProvider(
+			{ language: 'dart' },
+			appLocalizationsCodeLenses,
+		),
+	);
+
+	context.subscriptions.push(vscode.commands.registerCommand('arb-editor.noopCodeLens', () => undefined));
 
 	// decorate the active editor now
 	handleFile(vscode.window.activeTextEditor);

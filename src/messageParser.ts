@@ -13,13 +13,12 @@
 import * as vscode from 'vscode';
 import { JSONPath, visit } from 'jsonc-parser';
 import XRegExp = require('xregexp');
-import { locateL10nYaml } from './project';
+import { getParsedL10nYaml, locateL10nYaml } from './project';
 import { L10nYaml } from './extension';
 import { Diagnostics } from './diagnose';
 import { Decorator } from './decorate';
 import { CodeActions } from './codeactions';
 import path = require('path');
-import YAML = require('yaml');
 import fs = require('fs');
 
 export class Parser {
@@ -228,7 +227,7 @@ export class Parser {
 
 		const l10nYamlPath = locateL10nYaml(editor.document.uri.fsPath);
 		const l10nOptions = l10nYamlPath
-			? parseYaml(l10nYamlPath)
+			? getParsedL10nYaml<L10nYaml>(l10nYamlPath)
 			: undefined;
 		const [messageList, errors] = this.parse(editor.document.getText(), l10nOptions)!;
 
@@ -286,14 +285,6 @@ function matchCurlyBrackets(v: StringLiteral, l10nOptions?: L10nYaml): MatchRecu
 		values.push(...newLocal.map(l => subLiteral.convertMatch(l)));
 	}
 	return values;
-}
-
-function parseYaml(uri: string): L10nYaml | undefined {
-	if (!fs.existsSync(uri)) {
-		return;
-	}
-	const yaml = fs.readFileSync(uri, "utf8");
-	return YAML.parse(yaml) as L10nYaml;
 }
 
 export function getUnescapedRegions(expression: string): [number, number][] {

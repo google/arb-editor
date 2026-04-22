@@ -30,7 +30,7 @@ export default [
             "eqeqeq": "warn",
             "no-throw-literal": "warn",
             "@typescript-eslint/naming-convention": "warn",
-            "semi": "off",
+            "semi": ["warn", "always"],
         }
     }
 ];
