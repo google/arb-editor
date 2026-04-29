@@ -3,7 +3,7 @@
   "publisher": "Google",
   "displayName": "ARB Editor",
   "description": "Editor for Application Resource Bundle files, used for localization.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "engines": {
     "vscode": "^1.106.1"
   },
@@ -20,6 +20,10 @@
   "categories": [
     "Other"
   ],
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.5"
+  },
   "activationEvents": [
     "onLanguage:json"
   ],
