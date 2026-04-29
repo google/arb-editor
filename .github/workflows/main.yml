@@ -13,9 +13,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
-      uses: actions/checkout@b80ff79f1755d06ba70441c368a6fe801f5f3a62
+      uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
     - name: Install Node.js
-      uses: actions/setup-node@eff380dfbcf941bf8832e4acb788cebe13dfd758
+      uses: actions/setup-node@670825a89dc0abd596e7a3abd0f5e3f6e5faf37c
       with:
         node-version: 24.11.1
     - run: npm install
