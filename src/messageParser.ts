@@ -341,7 +341,8 @@ export class MessageList {
 	}
 
 	getIndent(indentLevel?: number): string {
-		return this.indentationCharacter.repeat((this.indentationCount ?? 0) * (indentLevel ?? 1));
+		const indent = this.indentationCharacter.repeat((this.indentationCount ?? 0) * (indentLevel ?? 1));
+		return indent || '\t'.repeat(indentLevel ?? 1);
 	}
 
 	getMessageAt(offset: number): Message | null {
