@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [0.2.3]
 
+- Fix schema validation warning in VS Code 1.130+ where metadata matched both message and metadata schemas [#93](https://github.com/google/arb-editor/issues/93).
+- Fix integration test flakiness and race conditions [#96](https://github.com/google/arb-editor/pull/96).
 - Update dependencies to fix vulnerabilities.
 
 ## [0.2.2]
