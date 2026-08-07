@@ -248,7 +248,7 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 			editor.document.positionAt(item.start + 1),
 			editor.document.positionAt(item.end - 1)
 		));
-	const fixAction = actions?.find(a => a.kind?.value === vscode.CodeActionKind.QuickFix.value && a.edit);
+	const fixAction = actions?.find(a => a.title.startsWith('Add metadata for') && a.edit);
 	assert.ok(fixAction, `Expected quickfix action to be found, got: ${JSON.stringify(actions)}`);
 	await vscode.workspace.applyEdit(fixAction.edit!);
 
@@ -259,13 +259,13 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 async function waitForDiagnostics(uri: vscode.Uri, timeoutMs = 3000): Promise<vscode.Diagnostic[]> {
 	const start = Date.now();
 	while (Date.now() - start < timeoutMs) {
-		const diags = vscode.languages.getDiagnostics(uri);
+		const diags = vscode.languages.getDiagnostics(uri).filter(d => d.source === "arb");
 		if (diags.length > 0) {
 			return diags;
 		}
 		await new Promise(resolve => setTimeout(resolve, 50));
 	}
-	return vscode.languages.getDiagnostics(uri);
+	return vscode.languages.getDiagnostics(uri).filter(d => d.source === "arb");
 }
 
 async function compareGolden(text: string, goldenFile: string) {
