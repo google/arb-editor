@@ -15,20 +15,13 @@ import { Key, MessageEntry, MessageList, Metadata, Parser, Placeholder } from '.
 
 
 export class CodeActions implements vscode.CodeActionProvider {
-	messageList: MessageList | undefined;
-
-	update(messageList: MessageList) {
-		this.messageList = messageList;
-	}
-
 	public static readonly providedCodeActionKinds = [
 		vscode.CodeActionKind.QuickFix
 	];
 
 	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
 		const diagnostics = context.diagnostics;
-		const [parsedList,] = new Parser().parse(document.getText());
-		const messageList = parsedList ?? this.messageList;
+		const [messageList,] = new Parser().parse(document.getText());
 		if (!messageList) {
 			return [];
 		}

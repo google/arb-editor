@@ -21,7 +21,6 @@ import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } 
 import { CombinedMessage, Key, Literal, MessageList, Parser, getUnescapedRegions } from '../../messageParser';
 import { DiagnosticCode, Diagnostics } from '../../diagnose';
 import { L10nYaml } from '../../extension';
-import { CodeActions } from '../../codeactions';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 	[placeholderDecoration, '[decoration]placeholder'],
@@ -296,7 +295,6 @@ async function buildContentWithAnnotations(filename: string) {
 		editor,
 		decorator: new Decorator(),
 		diagnostics: new Diagnostics(),
-		quickfixes: new CodeActions(),
 	});
 
 

@@ -90,7 +90,6 @@ export async function activate(context: vscode.ExtensionContext) {
 				editor: editor!,
 				decorator: decorator,
 				diagnostics: diagnostics,
-				quickfixes: quickfixes,
 			}).messageList;
 		}
 
