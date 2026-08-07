@@ -3,7 +3,7 @@
   "publisher": "Google",
   "displayName": "ARB Editor",
   "description": "Editor for Application Resource Bundle files, used for localization.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "engines": {
     "vscode": "^1.106.1"
   },
@@ -20,6 +20,10 @@
   "categories": [
     "Other"
   ],
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.5"
+  },
   "activationEvents": [
     "onLanguage:json"
   ],
@@ -102,20 +106,20 @@
   "devDependencies": {
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.13.3",
     "@types/vscode": "^1.106.1",
     "@typescript-eslint/eslint-plugin": "^8.48.1",
     "@typescript-eslint/parser": "^8.48.1",
     "@vscode/test-electron": "^3.1.0",
-    "eslint": "^9.39.1",
-    "glob": "^13.0.0",
+    "eslint": "^9.39.5",
+    "glob": "^13.0.6",
     "globals": "^16.5.0",
-    "mocha": "^11.7.5",
+    "mocha": "^11.8.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
     "xregexp": "^5.1.2",
-    "yaml": "^2.8.2"
+    "yaml": "^2.9.0"
   }
 }

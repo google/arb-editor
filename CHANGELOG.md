@@ -4,6 +4,12 @@ All notable changes to the "arbeditor" extension will be documented in this file
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.2.3]
+
+- Fix schema validation warning in VS Code 1.130+ where metadata matched both message and metadata schemas [#93](https://github.com/google/arb-editor/issues/93).
+- Fix integration test flakiness and race conditions [#96](https://github.com/google/arb-editor/pull/96).
+- Update dependencies to fix vulnerabilities.
+
 ## [0.2.2]
 
 - Fix parser when value has backslash [#73](https://github.com/google/arb-editor/issues/73).
