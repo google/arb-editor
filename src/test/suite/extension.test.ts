@@ -234,6 +234,9 @@ function getPlaceholder(messageList: MessageList) {
 async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string) {
 	const editor = await getEditor(testFile);
 
+	// Wait for diagnostics to be populated by the extension
+	await waitForDiagnostics(editor.document.uri);
+
 	// Parse original
 	const [messageList,] = new Parser().parse(editor.document.getText());
 
@@ -246,10 +249,24 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 			editor.document.positionAt(item.start + 1),
 			editor.document.positionAt(item.end - 1)
 		));
-	await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+	const fixAction = actions?.find(a => a.kind?.value === vscode.CodeActionKind.QuickFix.value && a.edit);
+	assert.ok(fixAction, `Expected quickfix action to be found, got: ${JSON.stringify(actions)}`);
+	await vscode.workspace.applyEdit(fixAction.edit!);
 
 	// Compare with golden
 	await compareGolden(editor.document.getText(), goldenFile);
+}
+
+async function waitForDiagnostics(uri: vscode.Uri, timeoutMs = 3000): Promise<vscode.Diagnostic[]> {
+	const start = Date.now();
+	while (Date.now() - start < timeoutMs) {
+		const diags = vscode.languages.getDiagnostics(uri);
+		if (diags.length > 0) {
+			return diags;
+		}
+		await new Promise(resolve => setTimeout(resolve, 50));
+	}
+	return vscode.languages.getDiagnostics(uri);
 }
 
 async function compareGolden(text: string, goldenFile: string) {
