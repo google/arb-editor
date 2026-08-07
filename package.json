@@ -115,7 +115,7 @@
     "glob": "^13.0.6",
     "globals": "^16.5.0",
     "mocha": "^11.8.0",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
