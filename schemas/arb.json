@@ -336,7 +336,7 @@
                     "type": "string",
                     "description": "A short paragraph describing the resource and how it is being used by the app, and message that need to be passed to localization process and translators."
                 },
-                "comment":{
+                "comment": {
                     "type": "string",
                     "description": "A comment on this resource. This is not intended to be sent to translators."
                 }
@@ -344,7 +344,7 @@
             "description": "Metadata for a message.",
             "additionalProperties": false
         },
-        "^(?!@@).+$": {
+        "^(?!@).+$": {
             "type": "string",
             "description": "The ID of a message"
         }
