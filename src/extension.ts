@@ -94,7 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			}).messageList;
 		}
 
-		if (executeDelayed && pendingDecorations) {
+		if (pendingDecorations) {
 			clearTimeout(pendingDecorations);
 		}
 		if (editor) {
