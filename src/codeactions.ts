@@ -11,49 +11,47 @@
 'use strict';
 import * as vscode from 'vscode';
 import { DiagnosticCode } from './diagnose';
-import { Key, MessageEntry, MessageList, Metadata, Placeholder } from './messageParser';
+import { Key, MessageEntry, MessageList, Metadata, Parser, Placeholder } from './messageParser';
 
 
 export class CodeActions implements vscode.CodeActionProvider {
-	messageList: MessageList | undefined;
-
-	update(messageList: MessageList) {
-		this.messageList = messageList;
-	}
-
 	public static readonly providedCodeActionKinds = [
 		vscode.CodeActionKind.QuickFix
 	];
 
 	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
 		const diagnostics = context.diagnostics;
+		const [messageList,] = new Parser().parse(document.getText());
+		if (!messageList) {
+			return [];
+		}
 
 		const newMetadataActions = diagnostics
 			.filter(diagnostic => diagnostic.code === DiagnosticCode.missingMetadataForKey)
-			.map(_ => this.createMetadataForKey(document, range));
+			.map(_ => this.createMetadataForKey(document, range, messageList));
 
 		const undefinedPlaceholderActions = diagnostics
 			.filter(diagnostic => diagnostic.code === DiagnosticCode.placeholderWithoutMetadata)
-			.map(_ => this.createPlaceholder(document, range));
+			.map(_ => this.createPlaceholder(document, range, messageList));
 
 		return [...newMetadataActions, ...undefinedPlaceholderActions]
 			.filter(codeAction => codeAction instanceof vscode.CodeAction)
 			.map(codeAction => codeAction as vscode.CodeAction);
 	}
 
-	private createMetadataForKey(document: vscode.TextDocument, range: vscode.Range | vscode.Selection): vscode.CodeAction {
-		const messageKey = this.messageList?.getMessageAt(document.offsetAt(range.start)) as Key | undefined;
+	private createMetadataForKey(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, messageList: MessageList): vscode.CodeAction {
+		const messageKey = messageList.getMessageAt(document.offsetAt(range.start)) as Key | undefined;
 
 		const fix = new vscode.CodeAction(`Add metadata for key '${messageKey?.value}'`, vscode.CodeActionKind.QuickFix);
 		fix.edit = new vscode.WorkspaceEdit();
-		fix.edit.insert(document.uri, document.positionAt(messageKey?.endOfMessage ?? 0), `,\n${this.messageList?.getIndent()}"@${messageKey?.value}": {}`);
+		fix.edit.insert(document.uri, document.positionAt(messageKey?.endOfMessage ?? 0), `,\n${messageList.getIndent()}"@${messageKey?.value}": {}`);
 		return fix;
 	}
 
-	private createPlaceholder(document: vscode.TextDocument, range: vscode.Range | vscode.Selection): vscode.CodeAction | undefined {
+	private createPlaceholder(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, messageList: MessageList): vscode.CodeAction | undefined {
 		const offset = document.offsetAt(range.start);
-		const placeholder = this.messageList
-			?.getMessageAt(offset)
+		const placeholder = messageList
+			.getMessageAt(offset)
 			?.getPlaceholders()
 			?.find((p) => p.whereIs(offset) !== null);
 		if (!placeholder) {
@@ -67,7 +65,7 @@ export class CodeActions implements vscode.CodeActionProvider {
 		fix.edit = new vscode.WorkspaceEdit();
 
 		const parentKey = (parent as MessageEntry).key;
-		const metadataBlock = this.messageList?.metadataEntries.find((entry) => entry.key.value === '@' + parentKey.value);
+		const metadataBlock = messageList.metadataEntries.find((entry) => entry.key.value === '@' + parentKey.value);
 		if (metadataBlock) {
 			const metadata = metadataBlock.message as Metadata;
 			if (metadata.placeholders.length > 0) {
@@ -75,16 +73,16 @@ export class CodeActions implements vscode.CodeActionProvider {
 				fix.edit.insert(
 					document.uri,
 					document.positionAt(lastPlaceholderEnd!),
-					`,\n${this.messageList!.getIndent(3)}"${placeholder.value}": {}`
+					`,\n${messageList.getIndent(3)}"${placeholder.value}": {}`
 				);
 			} else if (metadata.lastPlaceholderEnd) {
 				fix.edit.insert(
 					document.uri,
 					document.positionAt(metadata.lastPlaceholderEnd),
-					`\n${this.messageList!.getIndent(3)}"${placeholder.value}": {}\n${this.messageList!.getIndent(2)}`
+					`\n${messageList.getIndent(3)}"${placeholder.value}": {}\n${messageList.getIndent(2)}`
 				);
 			} else {
-				const insertable = `\n${this.messageList!.getIndent(2)}"placeholders": {\n${this.messageList!.getIndent(3)}"${placeholder.value}": {}\n${this.messageList!.getIndent(2)}}\n${this.messageList!.getIndent()}`;
+				const insertable = `\n${messageList.getIndent(2)}"placeholders": {\n${messageList.getIndent(3)}"${placeholder.value}": {}\n${messageList.getIndent(2)}}\n${messageList.getIndent()}`;
 				fix.edit.insert(document.uri, document.positionAt(metadata.metadataEnd), insertable);
 			}
 			return fix;

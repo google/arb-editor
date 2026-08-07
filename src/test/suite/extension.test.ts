@@ -21,7 +21,6 @@ import { placeholderDecoration, selectDecoration, pluralDecoration, Decorator } 
 import { CombinedMessage, Key, Literal, MessageList, Parser, getUnescapedRegions } from '../../messageParser';
 import { DiagnosticCode, Diagnostics } from '../../diagnose';
 import { L10nYaml } from '../../extension';
-import { CodeActions } from '../../codeactions';
 
 const annotationNames = new Map<vscode.TextEditorDecorationType, string>([
 	[placeholderDecoration, '[decoration]placeholder'],
@@ -234,6 +233,9 @@ function getPlaceholder(messageList: MessageList) {
 async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messageList: MessageList) => Literal, goldenFile: string) {
 	const editor = await getEditor(testFile);
 
+	// Wait for diagnostics to be populated by the extension
+	await waitForDiagnostics(editor.document.uri);
+
 	// Parse original
 	const [messageList,] = new Parser().parse(editor.document.getText());
 
@@ -246,10 +248,24 @@ async function testFixAgainstGolden(testFile: string, getItemFromParsed: (messag
 			editor.document.positionAt(item.start + 1),
 			editor.document.positionAt(item.end - 1)
 		));
-	await vscode.workspace.applyEdit(actions[0].edit as vscode.WorkspaceEdit);
+	const fixAction = actions?.find(a => a.title.startsWith('Add metadata for') && a.edit);
+	assert.ok(fixAction, `Expected quickfix action to be found, got: ${JSON.stringify(actions)}`);
+	await vscode.workspace.applyEdit(fixAction.edit!);
 
 	// Compare with golden
 	await compareGolden(editor.document.getText(), goldenFile);
+}
+
+async function waitForDiagnostics(uri: vscode.Uri, timeoutMs = 3000): Promise<vscode.Diagnostic[]> {
+	const start = Date.now();
+	while (Date.now() - start < timeoutMs) {
+		const diags = vscode.languages.getDiagnostics(uri).filter(d => d.source === "arb");
+		if (diags.length > 0) {
+			return diags;
+		}
+		await new Promise(resolve => setTimeout(resolve, 50));
+	}
+	return vscode.languages.getDiagnostics(uri).filter(d => d.source === "arb");
 }
 
 async function compareGolden(text: string, goldenFile: string) {
@@ -279,7 +295,6 @@ async function buildContentWithAnnotations(filename: string) {
 		editor,
 		decorator: new Decorator(),
 		diagnostics: new Diagnostics(),
-		quickfixes: new CodeActions(),
 	});
 
 

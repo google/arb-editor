@@ -17,7 +17,6 @@ import { locateL10nYaml } from './project';
 import { L10nYaml } from './extension';
 import { Diagnostics } from './diagnose';
 import { Decorator } from './decorate';
-import { CodeActions } from './codeactions';
 import path = require('path');
 import YAML = require('yaml');
 import fs = require('fs');
@@ -222,7 +221,6 @@ export class Parser {
 		editor,
 		decorator,
 		diagnostics,
-		quickfixes,
 	}: ParseAndDecorateOptions): ParseAndDecorateResult {
 		let templateMessageList: MessageList | undefined;
 
@@ -247,7 +245,6 @@ export class Parser {
 
 		const decorations = decorator.decorate(editor, messageList);
 		const diags = diagnostics.diagnose(editor, messageList, errors, templateMessageList);
-		quickfixes.update(messageList);
 		return { messageList, decorations, diagnostics: diags };
 	}
 }
@@ -268,7 +265,6 @@ interface ParseAndDecorateOptions {
 	editor: vscode.TextEditor;
 	decorator: Decorator;
 	diagnostics: Diagnostics;
-	quickfixes: CodeActions;
 }
 
 function matchCurlyBrackets(v: StringLiteral, l10nOptions?: L10nYaml): MatchRecursiveValueNameMatchStringLiteral[] {

@@ -196,6 +196,7 @@ export class Diagnostics {
 			const range = new vscode.Range(editor.document.positionAt(start), editor.document.positionAt(end));
 			const diagnostic = new vscode.Diagnostic(range, errorMessage, severity);
 			diagnostic.code = code;
+			diagnostic.source = "arb";
 			diagnosticsList.push(diagnostic);
 		}
 
