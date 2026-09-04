@@ -25,7 +25,8 @@
     "serialize-javascript": "^7.0.5"
   },
   "activationEvents": [
-    "onLanguage:json"
+    "onLanguage:json",
+    "onLanguage:dart"
   ],
   "icon": "media/logo.png",
   "main": "./out/extension.js",
@@ -83,6 +84,16 @@
               }
             }
           ]
+        },
+        "arb-editor.enableInlayHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show ARB message values as inline hints in Dart code for AppLocalizations."
+        },
+        "arb-editor.inlayHints.maxLength": {
+          "type": "number",
+          "default": 35,
+          "description": "Maximum character length of the inline ARB message preview before truncating."
         }
       }
     }
