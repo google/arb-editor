@@ -13,7 +13,7 @@
 import * as vscode from 'vscode';
 import { JSONPath, visit } from 'jsonc-parser';
 import XRegExp = require('xregexp');
-import { locateL10nYaml, parseYaml } from './project';
+import { locateL10nYaml, parseYaml, resolveTemplateArbPath } from './project';
 import { L10nYaml } from './extension';
 import { Diagnostics } from './diagnose';
 import { Decorator } from './decorate';
@@ -206,13 +206,8 @@ export class Parser {
 			return path.isAbsolute(messageList.templatePath)
 				? messageList.templatePath
 				: path.join(path.dirname(document.uri.fsPath), messageList.templatePath);
-		} else if (l10nOptions !== undefined) {
-			const templateRootFromOptions = l10nOptions?.['arb-dir'] ?? 'lib/l10n';
-			const templatePathFromOptions = l10nOptions?.['template-arb-file'] ?? 'app_en.arb';
-
-			return path.isAbsolute(templatePathFromOptions)
-				? templatePathFromOptions
-				: path.join(path.dirname(l10nYamlPath), templateRootFromOptions, templatePathFromOptions);
+		} else if (l10nOptions !== undefined && l10nYamlPath) {
+			return resolveTemplateArbPath(l10nYamlPath, l10nOptions);
 		}
 	}
 
