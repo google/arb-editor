@@ -203,6 +203,7 @@ Text(S.current.greeting);
 			assert.strictEqual(part1.value, ': "Hello World!"');
 			assert.ok(part1.command);
 			assert.strictEqual(part1.command.command, 'arb-editor.openArbKey');
+			assert.ok(hint1.tooltip);
 
 			// Truncation test
 			const hint2 = createInlayHint(pos, 'longMessage', arbData.messages.get('longMessage')!, arbData, 20);

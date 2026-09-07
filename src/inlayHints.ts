@@ -166,7 +166,6 @@ export function createInlayHint(
 	tooltip.appendMarkdown(`\n\n> ${normalized}`);
 
 	const part = new vscode.InlayHintLabelPart(`: "${truncated}"`);
-	part.tooltip = tooltip;
 	part.command = {
 		title: 'Open in ARB',
 		command: 'arb-editor.openArbKey',
