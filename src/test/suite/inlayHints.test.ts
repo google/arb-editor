@@ -65,6 +65,10 @@ suite('Dart ARB Inlay Hints', () => {
 			assert.ok(!sanitized.includes('// l10n.hello'));
 			assert.ok(!sanitized.includes('  l10n.hello\n'));
 			assert.ok(sanitized.includes('Text(l10n.hello);'));
+
+			const matches = [...sanitized.matchAll(L10N_MEMBER_ACCESS_REGEX)];
+			assert.strictEqual(matches.length, 1);
+			assert.strictEqual(matches[0][3], 'hello');
 		});
 	});
 
