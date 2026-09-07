@@ -17,12 +17,14 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+	ArbData,
 	L10N_MEMBER_ACCESS_REGEX,
 	createInlayHint,
+	getArbData,
+	invalidateArbCache,
 	isLikelyLocalizationReceiver,
 	sanitizeDartSource,
 } from '../../inlayHints';
-import { ArbData, getArbData, invalidateArbCache } from '../../project';
 
 suite('Dart ARB Inlay Hints', () => {
 	suite('sanitizeDartSource', () => {
