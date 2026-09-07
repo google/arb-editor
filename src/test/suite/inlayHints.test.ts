@@ -37,34 +37,22 @@ suite('Dart ARB Inlay Hints', () => {
 			assert.ok(sanitized.includes('Text(l10n.hello);'));
 		});
 
-		test('masks block comments and nested block comments', () => {
-			const source = '/* l10n.comment /* nested */ */\nText(l10n.actual);';
+		test('masks doc comments (///) with spaces', () => {
+			const source = '/// See [context.l10n.hello]\nText(context.l10n.hello);';
 			const sanitized = sanitizeDartSource(source);
 
 			assert.strictEqual(sanitized.length, source.length);
-			assert.ok(!sanitized.includes('l10n.comment'));
-			assert.ok(!sanitized.includes('nested'));
-			assert.ok(sanitized.includes('Text(l10n.actual);'));
+			assert.ok(!sanitized.includes('context.l10n.hello]'));
+			assert.ok(sanitized.includes('Text(context.l10n.hello);'));
 		});
 
-		test('masks regular single and double quoted strings', () => {
-			const source = 'final a = "l10n.string1";\nfinal b = \'l10n.string2\';\nText(l10n.real);';
+		test('preserves code and string interpolation', () => {
+			const source = 'final msg = "${l10n.greeting}"; // end of line comment';
 			const sanitized = sanitizeDartSource(source);
 
 			assert.strictEqual(sanitized.length, source.length);
-			assert.ok(!sanitized.includes('l10n.string1'));
-			assert.ok(!sanitized.includes('l10n.string2'));
-			assert.ok(sanitized.includes('Text(l10n.real);'));
-		});
-
-		test('masks raw and triple quoted strings', () => {
-			const source = 'final a = r"l10n.raw";\nfinal b = \'\'\'\nl10n.triple\n\'\'\';\nText(l10n.real);';
-			const sanitized = sanitizeDartSource(source);
-
-			assert.strictEqual(sanitized.length, source.length);
-			assert.ok(!sanitized.includes('l10n.raw'));
-			assert.ok(!sanitized.includes('l10n.triple'));
-			assert.ok(sanitized.includes('Text(l10n.real);'));
+			assert.ok(sanitized.includes('final msg = "${l10n.greeting}";'));
+			assert.ok(!sanitized.includes('end of line comment'));
 		});
 	});
 

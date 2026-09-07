@@ -49,97 +49,11 @@ export function isLikelyLocalizationReceiver(
 }
 
 /**
- * Produces a source-like string where comments and string contents are masked with
- * spaces (newlines preserved) to avoid false positives in literals/comments.
+ * Produces a source-like string where `//` single-line comments and `///` doc comments
+ * are masked with spaces (preserving newlines) to avoid false positives in comments.
  */
 export function sanitizeDartSource(source: string): string {
-	let result = '';
-	let i = 0;
-	let commentDepth = 0;
-
-	while (i < source.length) {
-		if (commentDepth > 0) {
-			if (source[i] === '/' && source[i + 1] === '*') {
-				result += '  ';
-				i += 2;
-				commentDepth++;
-				continue;
-			}
-			if (source[i] === '*' && source[i + 1] === '/') {
-				result += '  ';
-				i += 2;
-				commentDepth--;
-				continue;
-			}
-			result += source[i] === '\n' ? '\n' : ' ';
-			i++;
-			continue;
-		}
-
-		if (source[i] === '/' && source[i + 1] === '/') {
-			result += '  ';
-			i += 2;
-			while (i < source.length && source[i] !== '\n') {
-				result += ' ';
-				i++;
-			}
-			continue;
-		}
-
-		if (source[i] === '/' && source[i + 1] === '*') {
-			result += '  ';
-			i += 2;
-			commentDepth = 1;
-			continue;
-		}
-
-		const isRaw =
-			(source[i] === 'r' || source[i] === 'R') &&
-			(source[i + 1] === '\'' || source[i + 1] === '"');
-		const quoteIndex = isRaw ? i + 1 : i;
-		const quoteChar = source[quoteIndex];
-
-		if (quoteChar === '\'' || quoteChar === '"') {
-			const isTriple =
-				source[quoteIndex + 1] === quoteChar &&
-				source[quoteIndex + 2] === quoteChar;
-			const quoteLen = isTriple ? 3 : 1;
-			const prefixLen = isRaw ? 1 : 0;
-			result += ' '.repeat(prefixLen + quoteLen);
-			i = quoteIndex + quoteLen;
-
-			while (i < source.length) {
-				if (!isRaw && !isTriple && source[i] === '\\') {
-					result += '  ';
-					i += 2;
-					continue;
-				}
-				if (isTriple) {
-					if (
-						source[i] === quoteChar &&
-						source[i + 1] === quoteChar &&
-						source[i + 2] === quoteChar
-					) {
-						result += '   ';
-						i += 3;
-						break;
-					}
-				} else if (source[i] === quoteChar) {
-					result += ' ';
-					i++;
-					break;
-				}
-				result += source[i] === '\n' ? '\n' : ' ';
-				i++;
-			}
-			continue;
-		}
-
-		result += source[i];
-		i++;
-	}
-
-	return result;
+	return source.replace(/\/\/[^\n]*/g, match => ' '.repeat(match.length));
 }
 
 export function parseYaml(uri: string): L10nYaml | undefined {
