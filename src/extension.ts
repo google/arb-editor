@@ -51,9 +51,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
 			'arb-editor.openArbKey',
-			async (uri: vscode.Uri, offset: number) => {
+			async (uri: vscode.Uri, target: string | number) => {
 				const doc = await vscode.workspace.openTextDocument(uri);
-				const pos = doc.positionAt(offset);
+				let pos: vscode.Position;
+				if (typeof target === 'number') {
+					pos = doc.positionAt(target);
+				} else {
+					const match = new RegExp(`"${target}"\\s*:`).exec(doc.getText());
+					pos = match ? doc.positionAt(match.index + 1) : new vscode.Position(0, 0);
+				}
 				const editor = await vscode.window.showTextDocument(doc);
 				editor.selection = new vscode.Selection(pos, pos);
 				editor.revealRange(

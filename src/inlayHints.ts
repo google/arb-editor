@@ -75,7 +75,6 @@ export function resolveTemplateArbPath(l10nYamlPath: string, options?: L10nYaml)
 
 export interface ArbMessageInfo {
 	value: string;
-	offset: number;
 	description?: string;
 }
 
@@ -110,48 +109,25 @@ export function getArbData(arbPath: string, outputClass?: string): ArbData | und
 	}
 
 	try {
-		const content = fs.readFileSync(arbPath, 'utf8');
-		const tree = jsonc.parseTree(content);
-		if (!tree || !tree.children) {
+		const json = jsonc.parse(fs.readFileSync(arbPath, 'utf8'));
+		if (!json || typeof json !== 'object') {
 			return undefined;
 		}
 
-		let locale = '';
 		const messages = new Map<string, ArbMessageInfo>();
-
-		for (const prop of tree.children) {
-			if (!prop.children || prop.children.length < 2) {
-				continue;
-			}
-			const key = prop.children[0].value;
-			if (typeof key !== 'string') {
-				continue;
-			}
-
-			if (key === '@@locale') {
-				locale = String(prop.children[1].value ?? '');
-			} else if (key.startsWith('@')) {
-				const mainKey = key.slice(1);
-				const descNode = prop.children[1]?.children?.find(
-					c => c.children && c.children[0]?.value === 'description',
-				);
-				const description = descNode?.children && descNode.children[1]?.value;
-				const existing = messages.get(mainKey);
-				if (existing && typeof description === 'string') {
-					existing.description = description;
-				}
-			} else if (typeof prop.children[1].value === 'string') {
+		for (const [key, value] of Object.entries(json)) {
+			if (typeof value === 'string' && !key.startsWith('@')) {
 				messages.set(key, {
-					value: prop.children[1].value,
-					offset: prop.children[0].offset,
+					value,
+					description: json[`@${key}`]?.description,
 				});
 			}
 		}
 
-		if (!locale) {
-			const match = path.basename(arbPath).match(/_([A-Za-z0-9_-]+)\.arb$/);
-			locale = match ? match[1] : '';
-		}
+		const locale =
+			json['@@locale'] ||
+			path.basename(arbPath).match(/_([A-Za-z0-9_-]+)\.arb$/)?.[1] ||
+			'';
 
 		const data: ArbData = {
 			uri: vscode.Uri.file(arbPath),
@@ -210,7 +186,7 @@ export function createInlayHint(
 	part.command = {
 		title: 'Open in ARB',
 		command: 'arb-editor.openArbKey',
-		arguments: [arbData.uri, messageInfo.offset],
+		arguments: [arbData.uri, key],
 	};
 
 	const hint = new vscode.InlayHint(

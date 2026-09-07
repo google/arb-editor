@@ -156,7 +156,6 @@ Text(S.current.greeting);
 			assert.ok(hello);
 			assert.strictEqual(hello.value, 'Hello World!');
 			assert.strictEqual(hello.description, 'A friendly greeting');
-			assert.ok(hello.offset > 0);
 		});
 
 		test('creates InlayHint with truncated label, tooltip, and click command', () => {
@@ -170,7 +169,6 @@ Text(S.current.greeting);
 						'helloWorld',
 						{
 							value: 'Hello World!',
-							offset: 20,
 							description: 'A friendly greeting',
 						},
 					],
@@ -178,7 +176,6 @@ Text(S.current.greeting);
 						'longMessage',
 						{
 							value: '1234567890123456789012345678901234567890',
-							offset: 100,
 						},
 					],
 				]),
@@ -193,6 +190,7 @@ Text(S.current.greeting);
 			assert.strictEqual(part1.value, ': "Hello World!"');
 			assert.ok(part1.command);
 			assert.strictEqual(part1.command.command, 'arb-editor.openArbKey');
+			assert.deepStrictEqual(part1.command.arguments, [arbData.uri, 'helloWorld']);
 			assert.ok(hint1.tooltip);
 
 			// Truncation test
