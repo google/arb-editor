@@ -57,7 +57,8 @@ export async function activate(context: vscode.ExtensionContext) {
 				if (typeof target === 'number') {
 					pos = doc.positionAt(target);
 				} else {
-					const match = new RegExp(`"${target}"\\s*:`).exec(doc.getText());
+					const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+					const match = new RegExp(`"${escaped}"\\s*:`).exec(doc.getText());
 					pos = match ? doc.positionAt(match.index + 1) : new vscode.Position(0, 0);
 				}
 				const editor = await vscode.window.showTextDocument(doc);

@@ -57,11 +57,16 @@ export function sanitizeDartSource(source: string): string {
 }
 
 export function parseYaml(uri: string): L10nYaml | undefined {
-	if (!fs.existsSync(uri)) {
+	try {
+		const yaml = fs.readFileSync(uri, 'utf8');
+		return YAML.parse(yaml) as L10nYaml;
+	} catch {
 		return undefined;
 	}
-	const yaml = fs.readFileSync(uri, 'utf8');
-	return YAML.parse(yaml) as L10nYaml;
+}
+
+export function escapeMarkdown(text: string): string {
+	return text.replace(/([\\`*_{}[\]()#+\-.!~|>])/g, '\\$1');
 }
 
 export function resolveTemplateArbPath(l10nYamlPath: string, options?: L10nYaml): string | undefined {
@@ -88,7 +93,8 @@ export interface ArbData {
 
 interface ArbCacheEntry {
 	mtimeMs: number;
-	data: ArbData;
+	messages: Map<string, ArbMessageInfo>;
+	locale: string;
 }
 
 const arbCache = new Map<string, ArbCacheEntry>();
@@ -98,17 +104,19 @@ export function invalidateArbCache(): void {
 }
 
 export function getArbData(arbPath: string, outputClass?: string): ArbData | undefined {
-	if (!fs.existsSync(arbPath)) {
-		return undefined;
-	}
-
-	const stat = fs.statSync(arbPath);
-	const cached = arbCache.get(arbPath);
-	if (cached && cached.mtimeMs === stat.mtimeMs) {
-		return cached.data;
-	}
-
 	try {
+		const stat = fs.statSync(arbPath);
+		const cached = arbCache.get(arbPath);
+		if (cached && cached.mtimeMs === stat.mtimeMs) {
+			return {
+				uri: vscode.Uri.file(arbPath),
+				filePath: arbPath,
+				locale: cached.locale,
+				outputClass: outputClass || 'AppLocalizations',
+				messages: cached.messages,
+			};
+		}
+
 		const json = jsonc.parse(fs.readFileSync(arbPath, 'utf8'));
 		if (!json || typeof json !== 'object') {
 			return undefined;
@@ -129,16 +137,14 @@ export function getArbData(arbPath: string, outputClass?: string): ArbData | und
 			path.basename(arbPath).match(/_([A-Za-z0-9_-]+)\.arb$/)?.[1] ||
 			'';
 
-		const data: ArbData = {
+		arbCache.set(arbPath, { mtimeMs: stat.mtimeMs, messages, locale });
+		return {
 			uri: vscode.Uri.file(arbPath),
 			filePath: arbPath,
 			locale,
 			outputClass: outputClass || 'AppLocalizations',
 			messages,
 		};
-
-		arbCache.set(arbPath, { mtimeMs: stat.mtimeMs, data });
-		return data;
 	} catch {
 		return undefined;
 	}
@@ -167,20 +173,21 @@ export function createInlayHint(
 	maxLength: number,
 ): vscode.InlayHint {
 	const normalized = messageInfo.value.replace(/\s+/g, ' ').trim();
+	const codePoints = Array.from(normalized);
 	const truncated =
-		normalized.length > maxLength
-			? `${normalized.slice(0, Math.max(0, maxLength - 3))}...`
+		codePoints.length > maxLength
+			? `${codePoints.slice(0, Math.max(0, maxLength - 3)).join('')}...`
 			: normalized;
 
 	const tooltip = new vscode.MarkdownString();
-	tooltip.appendMarkdown(`**${key}**`);
+	tooltip.appendMarkdown(`**${escapeMarkdown(key)}**`);
 	if (arbData.locale) {
-		tooltip.appendMarkdown(` \`(${arbData.locale})\``);
+		tooltip.appendMarkdown(` \`(${escapeMarkdown(arbData.locale)})\``);
 	}
 	if (messageInfo.description) {
-		tooltip.appendMarkdown(`\n\n*${messageInfo.description}*`);
+		tooltip.appendMarkdown(`\n\n*${escapeMarkdown(messageInfo.description)}*`);
 	}
-	tooltip.appendMarkdown(`\n\n> ${normalized}`);
+	tooltip.appendMarkdown(`\n\n> ${escapeMarkdown(normalized)}`);
 
 	const part = new vscode.InlayHintLabelPart(`: "${truncated}"`);
 	part.command = {

@@ -20,9 +20,11 @@ import {
 	ArbData,
 	L10N_MEMBER_ACCESS_REGEX,
 	createInlayHint,
+	escapeMarkdown,
 	getArbData,
 	invalidateArbCache,
 	isLikelyLocalizationReceiver,
+	parseYaml,
 	sanitizeDartSource,
 } from '../../inlayHints';
 
@@ -53,6 +55,16 @@ suite('Dart ARB Inlay Hints', () => {
 			assert.strictEqual(sanitized.length, source.length);
 			assert.ok(sanitized.includes('final msg = "${l10n.greeting}";'));
 			assert.ok(!sanitized.includes('end of line comment'));
+		});
+
+		test('masks indented single-line comments', () => {
+			const source = 'class Foo {\n  // l10n.hello\n  Text(l10n.hello);\n}';
+			const sanitized = sanitizeDartSource(source);
+
+			assert.strictEqual(sanitized.length, source.length);
+			assert.ok(!sanitized.includes('// l10n.hello'));
+			assert.ok(!sanitized.includes('  l10n.hello\n'));
+			assert.ok(sanitized.includes('Text(l10n.hello);'));
 		});
 	});
 
@@ -116,6 +128,56 @@ Text(S.current.greeting);
 		});
 	});
 
+	suite('parseYaml', () => {
+		const tempDir = path.join(__dirname, 'temp_yaml_test');
+		const validYamlPath = path.join(tempDir, 'valid.yaml');
+		const invalidYamlPath = path.join(tempDir, 'invalid.yaml');
+
+		suiteSetup(() => {
+			if (!fs.existsSync(tempDir)) {
+				fs.mkdirSync(tempDir, { recursive: true });
+			}
+			fs.writeFileSync(validYamlPath, 'arb-dir: lib/l10n\ntemplate-arb-file: app_en.arb\n', 'utf8');
+			fs.writeFileSync(invalidYamlPath, ': invalid: yaml: [unclosed', 'utf8');
+		});
+
+		suiteTeardown(() => {
+			if (fs.existsSync(tempDir)) {
+				fs.rmSync(tempDir, { recursive: true, force: true });
+			}
+		});
+
+		test('parses valid yaml', () => {
+			const result = parseYaml(validYamlPath);
+			assert.ok(result);
+			assert.strictEqual(result['arb-dir'], 'lib/l10n');
+			assert.strictEqual(result['template-arb-file'], 'app_en.arb');
+		});
+
+		test('returns undefined for non-existent file', () => {
+			const result = parseYaml(path.join(tempDir, 'does_not_exist.yaml'));
+			assert.strictEqual(result, undefined);
+		});
+
+		test('returns undefined for invalid yaml without throwing', () => {
+			const result = parseYaml(invalidYamlPath);
+			assert.strictEqual(result, undefined);
+		});
+	});
+
+	suite('escapeMarkdown', () => {
+		test('escapes markdown formatting characters', () => {
+			const raw = '**bold** _italic_ `code` [link](url) # heading ~strike~ > quote';
+			const escaped = escapeMarkdown(raw);
+			assert.strictEqual(escaped, '\\*\\*bold\\*\\* \\_italic\\_ \\`code\\` \\[link\\]\\(url\\) \\# heading \\~strike\\~ \\> quote');
+		});
+
+		test('preserves alphanumeric and simple punctuation', () => {
+			const raw = 'Hello world, 123; how are you?';
+			assert.strictEqual(escapeMarkdown(raw), raw);
+		});
+	});
+
 	suite('getArbData and createInlayHint', () => {
 		const tempDir = path.join(__dirname, 'temp_arb_test');
 		const testArbPath = path.join(tempDir, 'app_en.arb');
@@ -144,6 +206,21 @@ Text(S.current.greeting);
 			if (fs.existsSync(tempDir)) {
 				fs.rmSync(tempDir, { recursive: true, force: true });
 			}
+		});
+
+		test('returns undefined for non-existent file', () => {
+			const arbData = getArbData(path.join(tempDir, 'non_existent.arb'));
+			assert.strictEqual(arbData, undefined);
+		});
+
+		test('supports different outputClass without stale cache', () => {
+			const first = getArbData(testArbPath, 'AppLocalizations');
+			assert.ok(first);
+			assert.strictEqual(first.outputClass, 'AppLocalizations');
+
+			const second = getArbData(testArbPath, 'CustomLocalizations');
+			assert.ok(second);
+			assert.strictEqual(second.outputClass, 'CustomLocalizations');
 		});
 
 		test('parses ARB messages, locale, and descriptions', () => {
@@ -197,6 +274,55 @@ Text(S.current.greeting);
 			const hint2 = createInlayHint(pos, 'longMessage', arbData.messages.get('longMessage')!, arbData, 20);
 			const part2 = (hint2.label as vscode.InlayHintLabelPart[])[0];
 			assert.strictEqual(part2.value, ': "12345678901234567..."');
+		});
+
+		test('truncates multi-byte Unicode / emojis cleanly without splitting surrogate pairs', () => {
+			const arbData: ArbData = {
+				uri: vscode.Uri.file(testArbPath),
+				filePath: testArbPath,
+				locale: 'en',
+				outputClass: 'AppLocalizations',
+				messages: new Map([
+					[
+						'emojis',
+						{
+							value: '👋🎉🚀🌍✨❤️🔥💡',
+						},
+					],
+				]),
+			};
+
+			const pos = new vscode.Position(0, 0);
+			// 8 emojis. Truncating to 6 characters means max(0, 6 - 3) = 3 code points + '...'
+			const hint = createInlayHint(pos, 'emojis', arbData.messages.get('emojis')!, arbData, 6);
+			const part = (hint.label as vscode.InlayHintLabelPart[])[0];
+			assert.strictEqual(part.value, ': "👋🎉🚀..."');
+		});
+
+		test('escapes markdown characters in tooltip', () => {
+			const arbData: ArbData = {
+				uri: vscode.Uri.file(testArbPath),
+				filePath: testArbPath,
+				locale: 'en',
+				outputClass: 'AppLocalizations',
+				messages: new Map([
+					[
+						'special_key',
+						{
+							value: 'Hello *world* and _stars_ [link]',
+							description: 'Description with *stars* and [brackets]',
+						},
+					],
+				]),
+			};
+
+			const pos = new vscode.Position(0, 0);
+			const hint = createInlayHint(pos, 'special_key', arbData.messages.get('special_key')!, arbData, 50);
+			const tooltip = hint.tooltip as vscode.MarkdownString;
+			assert.ok(tooltip);
+			assert.ok(tooltip.value.includes('**special\\_key**'));
+			assert.ok(tooltip.value.includes('*Description with \\*stars\\* and \\[brackets\\]*'));
+			assert.ok(tooltip.value.includes('> Hello \\*world\\* and \\_stars\\_ \\[link\\]'));
 		});
 	});
 });
