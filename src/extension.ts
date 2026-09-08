@@ -27,6 +27,7 @@ import { CodeActions } from './codeactions';
 import { Decorator } from './decorate';
 import { Diagnostics } from './diagnose';
 import { Literal, MessageList, Parser } from './messageParser';
+import { DartArbInlayHintsProvider } from './inlayHints';
 const snippetsJson = require("../snippets/snippets.json");
 const snippetsInlineJson = require("../snippets/snippets_inline.json");
 
@@ -38,6 +39,40 @@ export async function activate(context: vscode.ExtensionContext) {
 	const parser = new Parser();
 	const quickfixes = new CodeActions();
 	let commonMessageList: MessageList | undefined;
+
+	// Inlay hints in Dart files
+	context.subscriptions.push(
+		vscode.languages.registerInlayHintsProvider(
+			{ language: 'dart' },
+			new DartArbInlayHintsProvider(context),
+		),
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			'arb-editor.openArbKey',
+			async (uri: vscode.Uri, target: string | number) => {
+				if (!uri || (typeof target !== 'string' && typeof target !== 'number')) {
+					return;
+				}
+				const doc = await vscode.workspace.openTextDocument(uri);
+				let pos: vscode.Position;
+				if (typeof target === 'number') {
+					pos = doc.positionAt(target);
+				} else {
+					const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+					const match = new RegExp(`"${escaped}"\\s*:`).exec(doc.getText());
+					pos = match ? doc.positionAt(match.index + 1) : new vscode.Position(0, 0);
+				}
+				const editor = await vscode.window.showTextDocument(doc);
+				editor.selection = new vscode.Selection(pos, pos);
+				editor.revealRange(
+					new vscode.Range(pos, pos),
+					vscode.TextEditorRevealType.InCenter,
+				);
+			},
+		),
+	);
 
 	// decorate when changing the active editor editor
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => handleFile(editor), null, context.subscriptions));

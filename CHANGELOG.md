@@ -4,6 +4,14 @@ All notable changes to the "arbeditor" extension will be documented in this file
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.0]
+
+- Add ARB Inlay Hints for `AppLocalizations` in Dart files [#114](https://github.com/google/arb-editor/pull/114).
+  - Inline translation previews for localization access expressions (`AppLocalizations.of(context).key`, `context.l10n.key`, `l10n.key`, etc.).
+  - Rich hover tooltips showing untruncated messages, locale, and description metadata.
+  - Click to navigate directly to translation keys in the template ARB file.
+  - New settings: `arb-editor.enableInlayHints` and `arb-editor.inlayHints.maxLength`.
+
 ## [0.2.3]
 
 - Fix schema validation warning in VS Code 1.130+ where metadata matched both message and metadata schemas [#93](https://github.com/google/arb-editor/issues/93).
