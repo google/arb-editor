@@ -5,7 +5,7 @@
   "description": "Editor for Application Resource Bundle files, used for localization.",
   "version": "0.3.0",
   "engines": {
-    "vscode": "^1.106.1"
+    "vscode": "^1.134.0"
   },
   "homepage": "https://github.com/google/arb-editor",
   "bugs": {
