@@ -52,6 +52,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'arb-editor.openArbKey',
 			async (uri: vscode.Uri, target: string | number) => {
+				if (!uri || (typeof target !== 'string' && typeof target !== 'number')) {
+					return;
+				}
 				const doc = await vscode.workspace.openTextDocument(uri);
 				let pos: vscode.Position;
 				if (typeof target === 'number') {

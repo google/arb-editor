@@ -59,7 +59,8 @@ export function sanitizeDartSource(source: string): string {
 export function parseYaml(uri: string): L10nYaml | undefined {
 	try {
 		const yaml = fs.readFileSync(uri, 'utf8');
-		return YAML.parse(yaml) as L10nYaml;
+		const parsed = YAML.parse(yaml);
+		return parsed && typeof parsed === 'object' ? (parsed as L10nYaml) : undefined;
 	} catch {
 		return undefined;
 	}
@@ -129,15 +130,17 @@ export function getArbData(arbPath: string, outputClass?: string): ArbData | und
 		const messages = new Map<string, ArbMessageInfo>();
 		for (const [key, value] of Object.entries(json)) {
 			if (typeof value === 'string' && !key.startsWith('@')) {
+				const rawDesc = json[`@${key}`]?.description;
 				messages.set(key, {
 					value,
-					description: json[`@${key}`]?.description,
+					description: typeof rawDesc === 'string' ? rawDesc : undefined,
 				});
 			}
 		}
 
+		const rawLocale = json['@@locale'];
 		const locale =
-			json['@@locale'] ||
+			(typeof rawLocale === 'string' ? rawLocale : undefined) ||
 			path.basename(arbPath).match(/_([A-Za-z0-9_-]+)\.arb$/)?.[1] ||
 			'';
 
@@ -317,7 +320,11 @@ export class DartArbInlayHintsProvider implements vscode.InlayHintsProvider {
 				continue;
 			}
 
-			const memberEndOffset = rangeStartOffset + match.index! + match[0].length;
+			if (match.index === undefined) {
+				continue;
+			}
+
+			const memberEndOffset = rangeStartOffset + match.index + match[0].length;
 			const position = document.positionAt(memberEndOffset);
 
 			hints.push(
