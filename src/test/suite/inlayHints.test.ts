@@ -24,7 +24,10 @@ import {
 	getArbData,
 	invalidateArbCache,
 	isLikelyLocalizationReceiver,
+	locateProjectRoot,
 	parseYaml,
+	resolveArbDataForDartFile,
+	resolveTemplateArbPath,
 	sanitizeDartSource,
 } from '../../inlayHints';
 
@@ -179,6 +182,99 @@ Text(S.current.greeting);
 		test('preserves alphanumeric and simple punctuation', () => {
 			const raw = 'Hello world, 123; how are you?';
 			assert.strictEqual(escapeMarkdown(raw), raw);
+		});
+	});
+
+	suite('resolveTemplateArbPath', () => {
+		test('resolves default template path from l10n.yaml', () => {
+			const result = resolveTemplateArbPath('/path/to/project/l10n.yaml');
+			assert.strictEqual(typeof result, 'string');
+			assert.strictEqual(result, path.join('/path/to/project', 'lib/l10n', 'app_en.arb'));
+		});
+
+		test('resolves default template path from project root directly', () => {
+			const result = resolveTemplateArbPath('/path/to/project');
+			assert.strictEqual(typeof result, 'string');
+			assert.strictEqual(result, path.join('/path/to/project', 'lib/l10n', 'app_en.arb'));
+		});
+
+		test('respects custom arb-dir and template-arb-file options', () => {
+			const result = resolveTemplateArbPath('/path/to/project/l10n.yaml', {
+				'arb-dir': 'custom/l10n',
+				'template-arb-file': 'intl_en.arb',
+			});
+			assert.strictEqual(result, path.join('/path/to/project', 'custom/l10n', 'intl_en.arb'));
+		});
+
+		test('handles absolute template-arb-file path', () => {
+			const absoluteArb = path.resolve('/somewhere/else/app_en.arb');
+			const result = resolveTemplateArbPath('/path/to/project/l10n.yaml', {
+				'template-arb-file': absoluteArb,
+			});
+			assert.strictEqual(result, absoluteArb);
+		});
+	});
+
+	suite('locateProjectRoot and resolveArbDataForDartFile', () => {
+		const tempDir = path.join(__dirname, 'temp_project_test');
+		const nestedDir = path.join(tempDir, 'lib', 'src', 'features');
+		const dartFile = path.join(nestedDir, 'feature.dart');
+		const pubspecPath = path.join(tempDir, 'pubspec.yaml');
+		const defaultArbDir = path.join(tempDir, 'lib', 'l10n');
+		const defaultArbPath = path.join(defaultArbDir, 'app_en.arb');
+		const l10nYamlPath = path.join(tempDir, 'l10n.yaml');
+
+		suiteSetup(() => {
+			fs.mkdirSync(nestedDir, { recursive: true });
+			fs.mkdirSync(defaultArbDir, { recursive: true });
+			fs.writeFileSync(pubspecPath, 'name: test_project\n', 'utf8');
+			fs.writeFileSync(dartFile, 'void main() {}\n', 'utf8');
+			fs.writeFileSync(
+				defaultArbPath,
+				JSON.stringify({ 'hello': 'Default Hello' }, null, 2),
+				'utf8',
+			);
+		});
+
+		suiteTeardown(() => {
+			if (fs.existsSync(tempDir)) {
+				fs.rmSync(tempDir, { recursive: true, force: true });
+			}
+		});
+
+		test('locates project root via pubspec.yaml from nested directory', () => {
+			const root = locateProjectRoot(nestedDir);
+			assert.strictEqual(root, tempDir);
+		});
+
+		test('resolves default ARB data when no l10n.yaml is present', () => {
+			invalidateArbCache();
+			const arbData = resolveArbDataForDartFile(dartFile);
+			assert.ok(arbData);
+			assert.strictEqual(arbData.outputClass, 'AppLocalizations');
+			assert.strictEqual(arbData.messages.get('hello')?.value, 'Default Hello');
+		});
+
+		test('resolves configured ARB data when l10n.yaml is present', () => {
+			const customArbDir = path.join(tempDir, 'custom_l10n');
+			const customArbPath = path.join(customArbDir, 'messages_en.arb');
+			fs.mkdirSync(customArbDir, { recursive: true });
+			fs.writeFileSync(
+				customArbPath,
+				JSON.stringify({ 'hello': 'Custom Hello' }, null, 2),
+				'utf8',
+			);
+			fs.writeFileSync(
+				l10nYamlPath,
+				'arb-dir: custom_l10n\ntemplate-arb-file: messages_en.arb\noutput-class: CustomStrings\n',
+				'utf8',
+			);
+
+			invalidateArbCache();
+			const arbData = resolveArbDataForDartFile(dartFile);
+			assert.ok(arbData);
+			assert.strictEqual(arbData.outputClass, 'CustomStrings');
+			assert.strictEqual(arbData.messages.get('hello')?.value, 'Custom Hello');
 		});
 	});
 

@@ -69,13 +69,17 @@ export function escapeMarkdown(text: string): string {
 	return text.replace(/([\\`*_{}[\]()#+\-.!~|>])/g, '\\$1');
 }
 
-export function resolveTemplateArbPath(l10nYamlPath: string, options?: L10nYaml): string | undefined {
+export function resolveTemplateArbPath(projectRootOrYamlPath: string, options?: L10nYaml): string {
 	const templateRoot = options?.['arb-dir'] ?? 'lib/l10n';
 	const templateFile = options?.['template-arb-file'] ?? 'app_en.arb';
 
+	const baseDir = /\.ya?ml$/i.test(projectRootOrYamlPath)
+		? path.dirname(projectRootOrYamlPath)
+		: projectRootOrYamlPath;
+
 	return path.isAbsolute(templateFile)
 		? templateFile
-		: path.join(path.dirname(l10nYamlPath), templateRoot, templateFile);
+		: path.join(baseDir, templateRoot, templateFile);
 }
 
 export interface ArbMessageInfo {
@@ -150,19 +154,42 @@ export function getArbData(arbPath: string, outputClass?: string): ArbData | und
 	}
 }
 
+export function locateProjectRoot(folder: string): string | undefined {
+	if (!folder || (!vscode.workspace.getWorkspaceFolder(vscode.Uri.file(folder)) && vscode.workspace.workspaceFolders?.length)) {
+		return undefined;
+	}
+
+	let dir = folder;
+	while (dir !== path.dirname(dir)) {
+		if (
+			fs.existsSync(path.join(dir, 'pubspec.yaml')) ||
+			fs.existsSync(path.join(dir, '.dart_tool', 'package_config.json'))
+		) {
+			return dir;
+		}
+		dir = path.dirname(dir);
+	}
+
+	return undefined;
+}
+
 export function resolveArbDataForDartFile(dartFilePath: string): ArbData | undefined {
-	const l10nYamlPath = locateL10nYaml(path.dirname(dartFilePath));
-	if (!l10nYamlPath) {
+	const dir = path.dirname(dartFilePath);
+	const l10nYamlPath = locateL10nYaml(dir);
+	if (l10nYamlPath) {
+		const options = parseYaml(l10nYamlPath);
+		const arbPath = resolveTemplateArbPath(l10nYamlPath, options);
+		return getArbData(arbPath, options?.['output-class']);
+	}
+
+	// Flutter default fallback when no l10n.yaml exists
+	const projectRoot = locateProjectRoot(dir);
+	if (!projectRoot) {
 		return undefined;
 	}
 
-	const options = parseYaml(l10nYamlPath);
-	const arbPath = resolveTemplateArbPath(l10nYamlPath, options);
-	if (!arbPath) {
-		return undefined;
-	}
-
-	return getArbData(arbPath, options?.['output-class']);
+	const defaultArbPath = resolveTemplateArbPath(projectRoot);
+	return getArbData(defaultArbPath);
 }
 
 export function createInlayHint(
@@ -214,6 +241,7 @@ export class DartArbInlayHintsProvider implements vscode.InlayHintsProvider {
 	constructor(context: vscode.ExtensionContext) {
 		const arbWatcher = vscode.workspace.createFileSystemWatcher('**/*.arb');
 		const yamlWatcher = vscode.workspace.createFileSystemWatcher('**/l10n.yaml');
+		const pubspecWatcher = vscode.workspace.createFileSystemWatcher('**/pubspec.yaml');
 
 		const refresh = () => {
 			invalidateArbCache();
@@ -229,6 +257,10 @@ export class DartArbInlayHintsProvider implements vscode.InlayHintsProvider {
 			yamlWatcher.onDidChange(refresh),
 			yamlWatcher.onDidCreate(refresh),
 			yamlWatcher.onDidDelete(refresh),
+			pubspecWatcher,
+			pubspecWatcher.onDidChange(refresh),
+			pubspecWatcher.onDidCreate(refresh),
+			pubspecWatcher.onDidDelete(refresh),
 			vscode.workspace.onDidChangeConfiguration(e => {
 				if (
 					e.affectsConfiguration('arb-editor.enableInlayHints') ||
