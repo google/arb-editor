@@ -203,18 +203,39 @@ export class Parser {
 		document: vscode.TextDocument;
 		messageList: MessageList;
 	} & L10nYamlPathAndOptions): string | undefined {
+		let candidate: string | undefined;
 		if (messageList.templatePath) {
-			return path.isAbsolute(messageList.templatePath)
+			candidate = path.isAbsolute(messageList.templatePath)
 				? messageList.templatePath
 				: path.join(path.dirname(document.uri.fsPath), messageList.templatePath);
 		} else if (l10nOptions !== undefined) {
 			const templateRootFromOptions = l10nOptions?.['arb-dir'] ?? 'lib/l10n';
 			const templatePathFromOptions = l10nOptions?.['template-arb-file'] ?? 'app_en.arb';
 
-			return path.isAbsolute(templatePathFromOptions)
+			candidate = path.isAbsolute(templatePathFromOptions)
 				? templatePathFromOptions
 				: path.join(path.dirname(l10nYamlPath), templateRootFromOptions, templatePathFromOptions);
 		}
+
+		if (candidate === undefined) {
+			return undefined;
+		}
+
+		// Security: the template path is derived from workspace content that an
+		// untrusted party may control — the `@@x-template` field of an .arb file,
+		// or `arb-dir` / `template-arb-file` in l10n.yaml — and is passed straight
+		// to fs.readFileSync below. Without containment, a crafted value such as
+		// `@@x-template: "../../../../etc/passwd"` (or an absolute path) lets a
+		// repository read any file the editing user can open, outside the project.
+		// Refuse any resolved path that escapes the workspace folder.
+		const resolved = path.resolve(candidate);
+		const workspaceRoot = path.resolve(
+			vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath
+			?? path.dirname(document.uri.fsPath));
+		if (resolved !== workspaceRoot && !resolved.startsWith(workspaceRoot + path.sep)) {
+			return undefined;
+		}
+		return resolved;
 	}
 
 	parseAndDecorate({
