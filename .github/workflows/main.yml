@@ -19,7 +19,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Install Node.js
-      uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+      uses: actions/setup-node@7f84f1d52d0c56afb45c62fee31a93b843cea4d6
       with:
         node-version: 24.11.1
     - run: npm install
