@@ -22,6 +22,7 @@
   ],
   "overrides": {
     "diff": "^8.0.3",
+    "minimatch": "^11.0.1",
     "serialize-javascript": "^7.0.5"
   },
   "activationEvents": [
