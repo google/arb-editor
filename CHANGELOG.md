@@ -6,6 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [0.3.1]
 
+- Require VS Code 1.140.0 or later.
 - Update dependencies to fix vulnerabilities ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)) [#160](https://github.com/google/arb-editor/pull/160).
 
 ## [0.3.0]
