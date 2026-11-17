@@ -3,9 +3,9 @@
   "publisher": "Google",
   "displayName": "ARB Editor",
   "description": "Editor for Application Resource Bundle files, used for localization.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "engines": {
-    "vscode": "^1.106.1"
+    "vscode": "^1.140.0"
   },
   "homepage": "https://github.com/google/arb-editor",
   "bugs": {
@@ -22,6 +22,8 @@
   ],
   "overrides": {
     "diff": "^8.0.3",
+    "glob": "$glob",
+    "minimatch": "^11.0.1",
     "serialize-javascript": "^7.0.5"
   },
   "activationEvents": [
