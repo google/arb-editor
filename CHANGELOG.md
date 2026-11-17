@@ -4,6 +4,10 @@ All notable changes to the "arbeditor" extension will be documented in this file
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.1]
+
+- Update dependencies to fix vulnerabilities ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)) [#160](https://github.com/google/arb-editor/pull/160).
+
 ## [0.3.0]
 
 - Add ARB Inlay Hints for `AppLocalizations` in Dart files [#114](https://github.com/google/arb-editor/pull/114).
