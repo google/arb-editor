@@ -1,0 +1,81 @@
+name: Publish
+
+# Publishes the extension to the VS Code Marketplace and Open VSX, and creates
+# a GitHub Release, whenever a version tag (e.g. `v0.3.1`) is pushed.
+#
+# Required secrets (configure them on the `release` environment):
+#   VSCE_PAT - Azure DevOps PAT with "Marketplace > Manage" scope for the
+#              `Google` publisher.
+#   OVSX_PAT - Open VSX access token with publish rights on the `Google`
+#              namespace.
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions: read-all
+
+jobs:
+  publish:
+    if: github.repository == 'google/arb-editor'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write # To create the GitHub Release.
+    steps:
+    - name: Checkout
+      uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      with:
+        persist-credentials: false
+    - name: Install Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      with:
+        node-version: 24.11.1
+
+    - name: Check tag matches package.json version
+      id: version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+          echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $VERSION"
+          exit 1
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "vsix=arb-editor-$VERSION.vsix" >> "$GITHUB_OUTPUT"
+
+    - run: npm ci
+    - run: xvfb-run -a npm test
+
+    - name: Package
+      run: npx --yes @vscode/vsce@4.1.1 package --out "$VSIX"
+      env:
+        VSIX: ${{ steps.version.outputs.vsix }}
+
+    - name: Publish to VS Code Marketplace
+      run: npx --yes @vscode/vsce@4.1.1 publish --packagePath "$VSIX"
+      env:
+        VSIX: ${{ steps.version.outputs.vsix }}
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+    - name: Publish to Open VSX
+      run: npx --yes ovsx@1.4.0 publish "$VSIX"
+      env:
+        VSIX: ${{ steps.version.outputs.vsix }}
+        OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+    - name: Create GitHub Release
+      run: |
+        # Use the matching CHANGELOG.md section as release notes.
+        awk -v v="$VERSION" '
+          $0 == "## [" v "]" { found = 1; next }
+          found && /^## \[/ { exit }
+          found { print }
+        ' CHANGELOG.md > release-notes.md
+        gh release create "$GITHUB_REF_NAME" "$VSIX" \
+          --title "$GITHUB_REF_NAME" \
+          --notes-file release-notes.md
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        VSIX: ${{ steps.version.outputs.vsix }}
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
